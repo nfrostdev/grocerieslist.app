@@ -19,8 +19,13 @@
 
 <script>
 import List from '@/classes/List.js'
+import { mapStores } from 'pinia'
+import { useListsStore } from '@/stores/lists'
 
 export default {
+  computed: {
+    ...mapStores(useListsStore)
+  },
   data () {
     return {
       name: null
@@ -28,11 +33,11 @@ export default {
   },
   methods: {
     createList () {
-      this.$store.dispatch('createList', new List(this.name, []))
-        .then(() => this.$router.push({
-          name: 'List',
-          params: { id: this.$store.state.lists[this.$store.state.lists.length - 1].id }
-        }))
+      this.listsStore.createList(new List(this.name, []))
+      this.$router.push({
+        name: 'List',
+        params: { id: this.listsStore.lists.at(-1).id }
+      })
     }
   },
   mounted () {

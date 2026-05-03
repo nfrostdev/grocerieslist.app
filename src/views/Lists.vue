@@ -20,16 +20,20 @@
 </template>
 
 <script>
+import { mapStores } from 'pinia'
+import { useListsStore } from '@/stores/lists'
+
 export default {
   computed: {
+    ...mapStores(useListsStore),
     lists () {
-      return this.$store.state.lists
+      return this.listsStore.lists
     }
   },
   methods: {
     deleteList (list) {
       if (confirm('Are you sure you want to delete your ' + list.n + ' list?')) {
-        this.$store.dispatch('deleteList', list.id)
+        this.listsStore.deleteList(list.id)
       }
     }
   },

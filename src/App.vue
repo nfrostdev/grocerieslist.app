@@ -19,9 +19,14 @@
 
 <script>
 import AppHeader from '@/components/AppHeader.vue'
+import { mapStores } from 'pinia'
+import { useListsStore } from '@/stores/lists'
 
 export default {
   components: { AppHeader },
+  computed: {
+    ...mapStores(useListsStore)
+  },
   data () {
     return {
       loaded: false
@@ -32,7 +37,7 @@ export default {
       const newList = JSON.parse(atob(this.$route.query.import.toString()))
 
       // If this list already exists we have to run a differential on the items, otherwise just add it.
-      const existingList = this.$store.state.lists.find(list => list.id === newList.id)
+      const existingList = this.listsStore.lists.find(list => list.id === newList.id)
       if (existingList) {
         newList.i.forEach(newListItem => {
           // If this item already exists on this list, update it appropriately, otherwise just add it.
@@ -50,22 +55,21 @@ export default {
           }
         })
 
-        this.$store.dispatch('updateList', newList)
+        this.listsStore.updateList(newList)
       } else {
-        this.$store.dispatch('createList', newList)
+        this.listsStore.createList(newList)
       }
 
       this.$router.replace({ name: 'List', params: { id: newList.id } })
     }
   },
   mounted () {
-    this.$store.dispatch('init').then(() => {
-      this.loaded = true
+    this.listsStore.init()
+    this.loaded = true
 
-      if (this.$route.query.import) {
-        this.importList()
-      }
-    })
+    if (this.$route.query.import) {
+      this.importList()
+    }
   }
 }
 </script>

@@ -92,8 +92,13 @@
 
 <script>
 import Item from '@/classes/Item.js'
+import { mapStores } from 'pinia'
+import { useListsStore } from '@/stores/lists'
 
 export default {
+  computed: {
+    ...mapStores(useListsStore)
+  },
   data () {
     return {
       list: null,
@@ -106,16 +111,15 @@ export default {
       return this.list.i.find(i => i.id === id)
     },
     updateLocalList () {
-      this.list = this.$store.getters.getListFromId(this.$route.params.id)
+      this.list = this.listsStore.getListFromId(this.$route.params.id)
     },
     addItemToList () {
       const item = new Item(this.name, this.quantity)
       this.list.i.push(item)
-      this.$store.dispatch('updateList', this.list).then(() => {
-        this.name = null
-        this.quantity = 1
-        this.updateLocalList()
-      })
+      this.listsStore.updateList(this.list)
+      this.name = null
+      this.quantity = 1
+      this.updateLocalList()
       this.$refs.item_name.focus()
     },
     modifyItemQuantity (event, id) {
@@ -123,7 +127,8 @@ export default {
       if (event.target.innerText && !isNaN(event.target.innerText)) {
         item.q = event.target.innerText
         item.u = new Date().getTime()
-        this.$store.dispatch('updateList', this.list).then(() => this.updateLocalList())
+        this.listsStore.updateList(this.list)
+        this.updateLocalList()
       } else {
         event.target.innerText = item.q
       }
@@ -134,7 +139,8 @@ export default {
         const item = this.findItem(id)
         item.n = event.target.innerText
         item.u = new Date().getTime()
-        this.$store.dispatch('updateList', this.list).then(() => this.updateLocalList())
+        this.listsStore.updateList(this.list)
+        this.updateLocalList()
       }
       event.target.blur()
     },
@@ -144,7 +150,7 @@ export default {
         item.u = new Date().getTime()
         item.d = 1
         this.list.i.sort((a, b) => a.d > b.d ? 1 : -1)
-        this.$store.dispatch('updateList', this.list)
+        this.listsStore.updateList(this.list)
       }
     },
     toggleItemCheckedStatus (id) {
@@ -152,7 +158,7 @@ export default {
       if (item) {
         item.c = item.c === 0 ? 1 : 0
         item.u = new Date().getTime()
-        this.$store.dispatch('updateList', this.list)
+        this.listsStore.updateList(this.list)
       }
     }
   },
