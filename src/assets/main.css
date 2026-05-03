@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-gl-lightblue: #BEC4E5;
+  --color-gl-blue: #A3ACE0;
+  --color-gl-darkblue: #283380;
+  --color-gl-deep-blue: #010A33;
+  --color-gl-blueberry: #5368E6;
+  --color-gl-muted-blue: #434971;
+  --color-gl-lightgray: #E7E9F3;
+  --color-gl-gray: #BEC4E5;
+  --color-gl-lightgreen: #57CF7E;
+  --color-gl-green: #3B9158;
+}
 
 html {
     @apply bg-gl-lightgray font-normal text-gl-darkblue;

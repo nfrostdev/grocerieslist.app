@@ -75,6 +75,8 @@ export default {
 </script>
 
 <style lang="scss">
+@reference "./assets/main.css";
+
 .main {
   @apply p-6 w-full max-w-lg mx-auto;
 }

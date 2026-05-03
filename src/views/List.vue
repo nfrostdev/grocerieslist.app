@@ -170,15 +170,17 @@ export default {
 </script>
 
 <style lang="scss">
+@reference "../assets/main.css";
+
 .new-item {
   @apply flex justify-center items-center;
 
   &__input {
     @apply relative w-48 bg-white px-3 py-2 rounded outline-none transition duration-200 ease-in-out border border-gl-gray;
-    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue dark:bg-opacity-50 dark:text-gray-200;
+    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/50 dark:text-gray-200;
 
     &:hover, &:focus {
-      @apply ring-4 ring-gl-blueberry ring-opacity-50 z-10;
+      @apply ring-4 ring-gl-blueberry/50 z-10;
     }
 
     &--number {
@@ -191,8 +193,8 @@ export default {
     @apply dark:bg-gl-green dark:border-gl-lightgreen dark:text-gray-200;
 
     &:hover, &:focus {
-      @apply bg-green-300 ring-4 ring-gl-lightgreen ring-opacity-50 z-10;
-      @apply dark:ring-gl-green dark:bg-green-800 dark:ring-opacity-30;
+      @apply bg-green-300 ring-4 ring-gl-lightgreen/50 z-10;
+      @apply dark:ring-gl-green/30 dark:bg-green-800;
     }
   }
 }
@@ -201,8 +203,8 @@ export default {
   @apply flex justify-start items-center w-full;
 
   &__container {
-    @apply flex justify-start items-center bg-white rounded border border-gl-gray h-14 flex-grow;
-    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue dark:bg-opacity-25 dark:text-gray-200;
+    @apply flex justify-start items-center bg-white rounded border border-gl-gray h-14 grow;
+    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/25 dark:text-gray-200;
   }
 
   &s {
@@ -219,7 +221,7 @@ export default {
 
   &__checkbox {
     @apply relative h-8 w-8 bg-white border border-gl-gray outline-none appearance-none rounded mr-2 cursor-pointer transition duration-200 ease-in-out;
-    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue dark:bg-opacity-25 dark:text-gray-200;
+    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/25 dark:text-gray-200;
 
     &:checked {
       @apply bg-gl-lightblue;
@@ -227,7 +229,7 @@ export default {
     }
 
     &:focus {
-      @apply border-blue-300 ring-4 ring-blue-300 ring-opacity-50 outline-none;
+      @apply border-blue-300 ring-4 ring-blue-300/50 outline-none;
     }
 
     &__icon {
@@ -243,7 +245,7 @@ export default {
     @apply px-4 h-full transition duration-200 ease-in-out;
 
     &:focus {
-      @apply border-blue-300 ring-4 ring-blue-300 ring-opacity-50 outline-none;
+      @apply border-blue-300 ring-4 ring-blue-300/50 outline-none;
     }
   }
 
@@ -253,7 +255,7 @@ export default {
   }
 
   &__name {
-    @apply flex justify-start items-center flex-grow;
+    @apply flex justify-start items-center grow;
   }
 
   &__icon {

@@ -48,6 +48,8 @@ export default {
 </script>
 
 <style lang="scss">
+@reference "../assets/main.css";
+
 .new-list {
   @apply grid place-items-center;
 
@@ -57,10 +59,10 @@ export default {
 
   &__input {
     @apply relative w-56 bg-white px-3 py-2 rounded outline-none transition duration-200 ease-in-out border border-gl-gray mr-2;
-    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue dark:bg-opacity-50 dark:text-gray-200;
+    @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/50 dark:text-gray-200;
 
     &:hover, &:focus {
-      @apply ring-4 ring-gl-blueberry ring-opacity-50 z-10;
+      @apply ring-4 ring-gl-blueberry/50 z-10;
     }
   }
 
@@ -69,8 +71,8 @@ export default {
     @apply dark:bg-gl-green dark:border-gl-lightgreen dark:text-gray-200;
 
     &:hover, &:focus {
-      @apply bg-green-300 ring-4 ring-gl-lightgreen ring-opacity-50 z-10;
-      @apply dark:ring-gl-green dark:bg-green-800 dark:ring-opacity-30;
+      @apply bg-green-300 ring-4 ring-gl-lightgreen/50 z-10;
+      @apply dark:ring-gl-green/30 dark:bg-green-800;
     }
   }
 

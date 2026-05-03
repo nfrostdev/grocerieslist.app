@@ -44,12 +44,14 @@ export default {
 </script>
 
 <style lang="scss">
+@reference "../assets/main.css";
+
 .list {
   @apply flex justify-start items-center px-4 py-3 bg-white rounded border border-gl-gray w-full font-bold text-lg transition duration-200 ease-in-out;
   @apply dark:bg-gl-darkblue dark:border-gl-deep-blue;
 
   &:hover, &:focus {
-    @apply bg-blue-50 border-blue-300 ring-2 ring-blue-300 ring-opacity-50 outline-none;
+    @apply bg-blue-50 border-blue-300 ring-2 ring-blue-300/50 outline-none;
     @apply dark:bg-gl-deep-blue dark:border-gl-darkblue dark:ring-gl-darkblue;
   }
 

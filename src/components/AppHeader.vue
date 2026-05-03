@@ -14,6 +14,8 @@
 </template>
 
 <style lang="scss">
+@reference "../assets/main.css";
+
 .header {
   @apply grid place-items-center bg-white py-4;
   @apply dark:bg-gl-deep-blue;
