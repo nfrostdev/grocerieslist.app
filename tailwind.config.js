@@ -1,6 +1,6 @@
 module.exports = {
-  purge: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
-  darkMode: 'media', // or 'media' or 'class'
+  content: ['./public/index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
+  darkMode: 'media',
   theme: {
     extend: {
       colors: {
@@ -16,9 +16,6 @@ module.exports = {
         'gl-green': '#3B9158'
       }
     }
-  },
-  variants: {
-    extend: {}
   },
   plugins: []
 }
