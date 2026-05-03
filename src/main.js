@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import './registerServiceWorker'
 import router from './router'
@@ -18,6 +19,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 library.add(faPlusSquare, faTimesCircle, faClipboardCheck, faShareAlt, faCircleNotch, faCheck)
 
 createApp(App)
+  .use(createPinia())
   .use(store)
   .use(router)
   .component('font-awesome-icon', FontAwesomeIcon)
