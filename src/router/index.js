@@ -10,17 +10,17 @@ const routes = [
   {
     path: '/new',
     name: 'New',
-    component: () => import(/* webpackChunkName: "new" */ '../views/New.vue')
+    component: () => import('../views/New.vue')
   },
   {
     path: '/:id',
     name: 'List',
-    component: () => import(/* webpackChunkName: "list" */ '../views/List.vue')
+    component: () => import('../views/List.vue')
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
