@@ -23,5 +23,14 @@ export default defineConfig({
     })
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  test: { environment: 'jsdom', globals: true }
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**'],
+      exclude: ['src/main.js', 'src/registerServiceWorker.js']
+    }
+  }
 })
