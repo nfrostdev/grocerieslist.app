@@ -20,8 +20,8 @@
 
     <!-- Only display the list items if they are present and not all soft deleted. -->
     <div
-      v-if=" list.i.length !== 0
-      && list.i.filter(item => item.d).length !== list.i.length"
+      v-if=" list.i.length !== 0 &&
+      list.i.filter(item => item.d).length !== list.i.length"
       class="items">
       <div
         v-if="list.i.filter(i => !i.d && i.c === 0).length && list.i.filter(i => !i.d && i.c === 0).length === 0"

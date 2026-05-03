@@ -2,11 +2,12 @@
   "name": "grocerieslist.app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "serve": "vite",
     "build": "vite build",
     "test:unit": "vitest run",
-    "lint": "eslint . --ext .js,.vue",
+    "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,20 +18,19 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "^7.28.6",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/vue-fontawesome": "^3.2.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/compiler-sfc": "^3.5.33",
-    "@vue/eslint-config-standard": "^8.0.1",
+    "@vue/eslint-config-standard": "^9.0.1",
     "@vue/test-utils": "^2.4.10",
     "autoprefixer": "^10.5.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-n": "^17.24.0",
     "eslint-plugin-promise": "^7.3.0",
-    "eslint-plugin-vue": "^9.33.0",
+    "eslint-plugin-vue": "^10.9.0",
     "jsdom": "^29.1.1",
     "lint-staged": "^16.4.0",
     "postcss": "^8.5.13",

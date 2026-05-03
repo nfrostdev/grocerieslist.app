@@ -13,7 +13,7 @@
       </div>
     </form>
 
-    <router-link :to="{name: 'Lists'}" class="new-list__cancel">Cancel</router-link>
+    <router-link :to="{ name: 'Lists' }" class="new-list__cancel">Cancel</router-link>
   </div>
 </template>
 

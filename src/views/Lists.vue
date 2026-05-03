@@ -2,7 +2,7 @@
   <div v-if="lists.length" class="lists">
     <div v-for="list in lists" :key="list.id" class="list__container">
       <router-link class="list"
-                   :to="{name: 'List', params: {id: list.id}}">
+                   :to="{ name: 'List', params: { id: list.id } }">
         <span>{{ list.n }}</span>
         <button :title="'Delete your ' + list.n + ' list.'"
                 @click.prevent="deleteList(list)"
@@ -14,7 +14,7 @@
   </div>
   <div v-else class="no-lists">
     <span>You have no lists, </span>
-    <router-link :to="{name: 'New'}" class="no-lists__link">create one</router-link>
+    <router-link :to="{ name: 'New' }" class="no-lists__link">create one</router-link>
     <span>!</span>
   </div>
 </template>
