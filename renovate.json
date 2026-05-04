@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "America/Los_Angeles",
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["^vue", "^@vue/", "^vite", "^@vitejs/", "^vitest", "^@vitest/"],
+      "groupName": "vue + vite ecosystem"
+    },
+    {
+      "matchPackagePatterns": ["^eslint", "eslint-plugin-", "eslint-config-"],
+      "groupName": "eslint ecosystem"
+    },
+    {
+      "matchPackagePatterns": ["^@fortawesome/"],
+      "groupName": "fontawesome"
+    },
+    {
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "automergeType": "pull-request"
+    }
+  ]
+}
