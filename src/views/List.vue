@@ -30,7 +30,7 @@
       <div v-for="item in list.i.filter(i => !i.d && !i.c)" :key="item.id">
         <div class="item">
           <label :for="item.n" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="item.n" :checked="item.c" @input="toggleItemCheckedStatus(item.id)"
+          <input type="checkbox" :id="item.n" :checked="!!item.c" @input="toggleItemCheckedStatus(item.id)"
                  class="item__checkbox"/>
           <font-awesome-icon icon="check" class="item__checkbox__icon"/>
           <div class="item__container">
@@ -60,7 +60,7 @@
       <div v-for="item in list.i.filter(i => !i.d && i.c === 1)" :key="item.id" class="items__checked">
         <div class="item">
           <label :for="item.n" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="item.n" :checked="item.c" @input="toggleItemCheckedStatus(item.id)"
+          <input type="checkbox" :id="item.n" :checked="!!item.c" @input="toggleItemCheckedStatus(item.id)"
                  class="item__checkbox"/>
           <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
           <div class="item__container">
@@ -90,84 +90,87 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import Item from '@/classes/Item.js'
+import Item from '@/classes/Item'
+import type List from '@/classes/List'
 import { useListsStore } from '@/stores/lists'
 
 const route = useRoute()
 const listsStore = useListsStore()
 
-const list = ref(null)
-const name = ref(null)
-const quantity = ref(1)
-const itemName = ref(null)
+const list = ref<List | null>(null)
+const name = ref<string | null>(null)
+const quantity = ref<number>(1)
+const itemName = ref<HTMLInputElement | null>(null)
 
-function findItem (id) {
-  return list.value.i.find(i => i.id === id)
+function findItem (id: string): Item | undefined {
+  return list.value!.i.find(i => i.id === id)
 }
 
-function updateLocalList () {
-  list.value = listsStore.getListFromId(route.params.id)
+function updateLocalList (): void {
+  list.value = listsStore.getListFromId(route.params.id as string) ?? null
 }
 
-function addItemToList () {
-  const item = new Item(name.value, quantity.value)
-  list.value.i.push(item)
-  listsStore.updateList(list.value)
+function addItemToList (): void {
+  const item = new Item(name.value!, quantity.value)
+  list.value!.i.push(item)
+  listsStore.updateList(list.value!)
   name.value = null
   quantity.value = 1
   updateLocalList()
-  itemName.value.focus()
+  itemName.value!.focus()
 }
 
-function modifyItemQuantity (event, id) {
-  const item = findItem(id)
-  if (event.target.innerText && !isNaN(event.target.innerText)) {
-    item.q = event.target.innerText
+function modifyItemQuantity (event: Event, id: string): void {
+  const target = event.target as HTMLElement
+  const item = findItem(id)!
+  if (target.innerText && !isNaN(Number(target.innerText))) {
+    item.q = target.innerText
     item.u = new Date().getTime()
-    listsStore.updateList(list.value)
+    listsStore.updateList(list.value!)
     updateLocalList()
   } else {
-    event.target.innerText = item.q
+    target.innerText = String(item.q)
   }
-  event.target.blur()
+  target.blur()
 }
 
-function modifyItemName (event, id) {
-  if (event.target.innerText) {
-    const item = findItem(id)
-    item.n = event.target.innerText
+function modifyItemName (event: Event, id: string): void {
+  const target = event.target as HTMLElement
+  if (target.innerText) {
+    const item = findItem(id)!
+    item.n = target.innerText
     item.u = new Date().getTime()
-    listsStore.updateList(list.value)
+    listsStore.updateList(list.value!)
     updateLocalList()
   }
-  event.target.blur()
+  target.blur()
 }
 
-function deleteItem (id) {
+function deleteItem (id: string): void {
   const item = findItem(id)
   if (item) {
     item.u = new Date().getTime()
     item.d = 1
-    list.value.i.sort((a, b) => a.d > b.d ? 1 : -1)
-    listsStore.updateList(list.value)
+    list.value!.i.sort((a, b) => a.d > b.d ? 1 : -1)
+    listsStore.updateList(list.value!)
   }
 }
 
-function toggleItemCheckedStatus (id) {
+function toggleItemCheckedStatus (id: string): void {
   const item = findItem(id)
   if (item) {
     item.c = item.c === 0 ? 1 : 0
     item.u = new Date().getTime()
-    listsStore.updateList(list.value)
+    listsStore.updateList(list.value!)
   }
 }
 
 onMounted(() => {
   updateLocalList()
-  document.title = list.value.n + ' List | Groceries List'
+  document.title = list.value!.n + ' List | Groceries List'
 })
 </script>
 

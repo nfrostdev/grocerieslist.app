@@ -2,13 +2,21 @@ import js from '@eslint/js'
 import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
 import vueStandard from '@vue/eslint-config-standard'
+import tseslint from 'typescript-eslint'
 
 export default [
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**'] },
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   ...vueStandard,
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: { parser: tseslint.parser }
+    }
+  },
   {
     rules: {
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',

@@ -17,29 +17,29 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import List from '@/classes/List.js'
+import List from '@/classes/List'
 import { useListsStore } from '@/stores/lists'
 
 const router = useRouter()
 const listsStore = useListsStore()
 
-const name = ref(null)
-const newListName = ref(null)
+const name = ref<string | null>(null)
+const newListName = ref<HTMLInputElement | null>(null)
 
-function createList () {
-  listsStore.createList(new List(name.value, []))
+function createList (): void {
+  listsStore.createList(new List(name.value!, []))
   router.push({
     name: 'List',
-    params: { id: listsStore.lists.at(-1).id }
+    params: { id: listsStore.lists.at(-1)!.id }
   })
 }
 
 onMounted(() => {
   document.title = 'New List | Groceries List'
-  newListName.value.focus()
+  newListName.value!.focus()
 })
 </script>
 

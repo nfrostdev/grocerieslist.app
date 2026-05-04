@@ -19,14 +19,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useListsStore } from '@/stores/lists'
+import type List from '@/classes/List'
 
 const listsStore = useListsStore()
 const lists = computed(() => listsStore.lists)
 
-function deleteList (list) {
+function deleteList (list: List): void {
   if (confirm('Are you sure you want to delete your ' + list.n + ' list?')) {
     listsStore.deleteList(list.id)
   }

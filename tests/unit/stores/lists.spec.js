@@ -1,7 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { useListsStore } from '@/stores/lists'
-import List from '@/classes/List.js'
-import Item from '@/classes/Item.js'
+import List from '@/classes/List'
+import Item from '@/classes/Item'
 
 describe('lists store', () => {
   beforeEach(() => {
