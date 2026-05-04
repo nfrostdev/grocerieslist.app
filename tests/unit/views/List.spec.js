@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { nextTick } from 'vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { useListsStore } from '@/stores/lists'
 import ListV from '@/views/List.vue'
 
@@ -10,9 +11,6 @@ const makeItem = (overrides = {}) => ({
   id: 'item1', n: 'Apples', q: 2, c: 0, d: 0, u: 0, ...overrides
 })
 
-// Seed via a secondary plugin (runs after pinia installs, before mounted()).
-// nextTick is required because mounted() sets this.list, triggering a re-render
-// that Vue schedules asynchronously.
 const mountList = async (items = [makeItem()]) => {
   const pinia = createPinia()
 
@@ -23,10 +21,15 @@ const mountList = async (items = [makeItem()]) => {
     }
   }
 
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/list/:id', name: 'List', component: { template: '<div/>' } }]
+  })
+  await router.push({ name: 'List', params: { id: listId } })
+
   const wrapper = mount(ListV, {
     global: {
-      plugins: [pinia, seeder],
-      mocks: { $route: { params: { id: listId } } },
+      plugins: [pinia, seeder, router],
       stubs: { FontAwesomeIcon: { template: '<span />' } }
     }
   })

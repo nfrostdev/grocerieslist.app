@@ -6,7 +6,7 @@
       <label for="name" class="sr-only">Item Name</label>
       <input v-model="name" required
              class="new-item__input"
-             ref="item_name"
+             ref="itemName"
              type="text" id="name" placeholder="Item Name" autofocus/>
 
       <label for="quantity" class="sr-only">Quantity</label>
@@ -90,83 +90,85 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Item from '@/classes/Item.js'
-import { mapStores } from 'pinia'
 import { useListsStore } from '@/stores/lists'
 
-export default {
-  computed: {
-    ...mapStores(useListsStore)
-  },
-  data () {
-    return {
-      list: null,
-      name: null,
-      quantity: 1
-    }
-  },
-  methods: {
-    findItem (id) {
-      return this.list.i.find(i => i.id === id)
-    },
-    updateLocalList () {
-      this.list = this.listsStore.getListFromId(this.$route.params.id)
-    },
-    addItemToList () {
-      const item = new Item(this.name, this.quantity)
-      this.list.i.push(item)
-      this.listsStore.updateList(this.list)
-      this.name = null
-      this.quantity = 1
-      this.updateLocalList()
-      this.$refs.item_name.focus()
-    },
-    modifyItemQuantity (event, id) {
-      const item = this.findItem(id)
-      if (event.target.innerText && !isNaN(event.target.innerText)) {
-        item.q = event.target.innerText
-        item.u = new Date().getTime()
-        this.listsStore.updateList(this.list)
-        this.updateLocalList()
-      } else {
-        event.target.innerText = item.q
-      }
-      event.target.blur()
-    },
-    modifyItemName (event, id) {
-      if (event.target.innerText) {
-        const item = this.findItem(id)
-        item.n = event.target.innerText
-        item.u = new Date().getTime()
-        this.listsStore.updateList(this.list)
-        this.updateLocalList()
-      }
-      event.target.blur()
-    },
-    deleteItem (id) {
-      const item = this.findItem(id)
-      if (item) {
-        item.u = new Date().getTime()
-        item.d = 1
-        this.list.i.sort((a, b) => a.d > b.d ? 1 : -1)
-        this.listsStore.updateList(this.list)
-      }
-    },
-    toggleItemCheckedStatus (id) {
-      const item = this.findItem(id)
-      if (item) {
-        item.c = item.c === 0 ? 1 : 0
-        item.u = new Date().getTime()
-        this.listsStore.updateList(this.list)
-      }
-    }
-  },
-  mounted () {
-    this.updateLocalList()
-    document.title = this.list.n + ' List | Groceries List'
+const route = useRoute()
+const listsStore = useListsStore()
+
+const list = ref(null)
+const name = ref(null)
+const quantity = ref(1)
+const itemName = ref(null)
+
+function findItem (id) {
+  return list.value.i.find(i => i.id === id)
+}
+
+function updateLocalList () {
+  list.value = listsStore.getListFromId(route.params.id)
+}
+
+function addItemToList () {
+  const item = new Item(name.value, quantity.value)
+  list.value.i.push(item)
+  listsStore.updateList(list.value)
+  name.value = null
+  quantity.value = 1
+  updateLocalList()
+  itemName.value.focus()
+}
+
+function modifyItemQuantity (event, id) {
+  const item = findItem(id)
+  if (event.target.innerText && !isNaN(event.target.innerText)) {
+    item.q = event.target.innerText
+    item.u = new Date().getTime()
+    listsStore.updateList(list.value)
+    updateLocalList()
+  } else {
+    event.target.innerText = item.q
+  }
+  event.target.blur()
+}
+
+function modifyItemName (event, id) {
+  if (event.target.innerText) {
+    const item = findItem(id)
+    item.n = event.target.innerText
+    item.u = new Date().getTime()
+    listsStore.updateList(list.value)
+    updateLocalList()
+  }
+  event.target.blur()
+}
+
+function deleteItem (id) {
+  const item = findItem(id)
+  if (item) {
+    item.u = new Date().getTime()
+    item.d = 1
+    list.value.i.sort((a, b) => a.d > b.d ? 1 : -1)
+    listsStore.updateList(list.value)
   }
 }
+
+function toggleItemCheckedStatus (id) {
+  const item = findItem(id)
+  if (item) {
+    item.c = item.c === 0 ? 1 : 0
+    item.u = new Date().getTime()
+    listsStore.updateList(list.value)
+  }
+}
+
+onMounted(() => {
+  updateLocalList()
+  document.title = list.value.n + ' List | Groceries List'
+})
 </script>
 
 <style lang="scss">

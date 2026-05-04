@@ -17,34 +17,30 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import List from '@/classes/List.js'
-import { mapStores } from 'pinia'
 import { useListsStore } from '@/stores/lists'
 
-export default {
-  computed: {
-    ...mapStores(useListsStore)
-  },
-  data () {
-    return {
-      name: null
-    }
-  },
-  methods: {
-    createList () {
-      this.listsStore.createList(new List(this.name, []))
-      this.$router.push({
-        name: 'List',
-        params: { id: this.listsStore.lists.at(-1).id }
-      })
-    }
-  },
-  mounted () {
-    document.title = 'New List | Groceries List'
-    this.$refs.newListName.focus()
-  }
+const router = useRouter()
+const listsStore = useListsStore()
+
+const name = ref(null)
+const newListName = ref(null)
+
+function createList () {
+  listsStore.createList(new List(name.value, []))
+  router.push({
+    name: 'List',
+    params: { id: listsStore.lists.at(-1).id }
+  })
 }
+
+onMounted(() => {
+  document.title = 'New List | Groceries List'
+  newListName.value.focus()
+})
 </script>
 
 <style lang="scss">

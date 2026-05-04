@@ -19,28 +19,22 @@
   </div>
 </template>
 
-<script>
-import { mapStores } from 'pinia'
+<script setup>
+import { computed, onMounted } from 'vue'
 import { useListsStore } from '@/stores/lists'
 
-export default {
-  computed: {
-    ...mapStores(useListsStore),
-    lists () {
-      return this.listsStore.lists
-    }
-  },
-  methods: {
-    deleteList (list) {
-      if (confirm('Are you sure you want to delete your ' + list.n + ' list?')) {
-        this.listsStore.deleteList(list.id)
-      }
-    }
-  },
-  mounted () {
-    document.title = 'My Lists | Groceries List'
+const listsStore = useListsStore()
+const lists = computed(() => listsStore.lists)
+
+function deleteList (list) {
+  if (confirm('Are you sure you want to delete your ' + list.n + ' list?')) {
+    listsStore.deleteList(list.id)
   }
 }
+
+onMounted(() => {
+  document.title = 'My Lists | Groceries List'
+})
 </script>
 
 <style lang="scss">

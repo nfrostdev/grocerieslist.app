@@ -1,18 +1,26 @@
 import { mount } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { useListsStore } from '@/stores/lists'
 import New from '@/views/New.vue'
 
 describe('New.vue', () => {
   it('creates a list and navigates on submit', async () => {
-    const push = vi.fn()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'New', component: { template: '<div/>' } },
+        { path: '/list/:id', name: 'List', component: { template: '<div/>' } }
+      ]
+    })
+    const push = vi.spyOn(router, 'push')
+
     const wrapper = mount(New, {
       global: {
-        plugins: [createTestingPinia({
-          stubActions: false,
-          initialState: { lists: { lists: [] } }
-        })],
-        mocks: { $router: { push } },
+        plugins: [
+          createTestingPinia({ stubActions: false, initialState: { lists: { lists: [] } } }),
+          router
+        ],
         stubs: { RouterLink: { template: '<a><slot /></a>' } }
       }
     })

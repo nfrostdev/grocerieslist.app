@@ -17,61 +17,56 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
-import { mapStores } from 'pinia'
 import { useListsStore } from '@/stores/lists'
 
-export default {
-  components: { AppHeader },
-  computed: {
-    ...mapStores(useListsStore)
-  },
-  data () {
-    return {
-      loaded: false
-    }
-  },
-  methods: {
-    importList () {
-      const newList = JSON.parse(atob(this.$route.query.import.toString()))
+const router = useRouter()
+const route = useRoute()
+const listsStore = useListsStore()
 
-      // If this list already exists we have to run a differential on the items, otherwise just add it.
-      const existingList = this.listsStore.lists.find(list => list.id === newList.id)
-      if (existingList) {
-        newList.i.forEach(newListItem => {
-          // If this item already exists on this list, update it appropriately, otherwise just add it.
-          const existingListItem = existingList.i.find(existingListItem => existingListItem.id === newListItem.id)
-          if (existingListItem) {
-            if (existingListItem.d || newListItem.d) {
-              // TODO: Actually delete the item from the array here.
-              newListItem.d = existingListItem.d ?? newListItem.d
-            }
-            if (existingListItem.u >= newListItem.u) {
-              newListItem = existingListItem
-            }
-          } else {
-            existingList.i.push(newListItem)
-          }
-        })
+const loaded = ref(false)
 
-        this.listsStore.updateList(newList)
+function importList () {
+  const newList = JSON.parse(atob(route.query.import.toString()))
+
+  // If this list already exists we have to run a differential on the items, otherwise just add it.
+  const existingList = listsStore.lists.find(list => list.id === newList.id)
+  if (existingList) {
+    newList.i.forEach(newListItem => {
+      // If this item already exists on this list, update it appropriately, otherwise just add it.
+      const existingListItem = existingList.i.find(existingListItem => existingListItem.id === newListItem.id)
+      if (existingListItem) {
+        if (existingListItem.d || newListItem.d) {
+          // TODO: Actually delete the item from the array here.
+          newListItem.d = existingListItem.d ?? newListItem.d
+        }
+        if (existingListItem.u >= newListItem.u) {
+          newListItem = existingListItem
+        }
       } else {
-        this.listsStore.createList(newList)
+        existingList.i.push(newListItem)
       }
+    })
 
-      this.$router.replace({ name: 'List', params: { id: newList.id } })
-    }
-  },
-  mounted () {
-    this.listsStore.init()
-    this.loaded = true
-
-    if (this.$route.query.import) {
-      this.importList()
-    }
+    listsStore.updateList(newList)
+  } else {
+    listsStore.createList(newList)
   }
+
+  router.replace({ name: 'List', params: { id: newList.id } })
 }
+
+onMounted(() => {
+  listsStore.init()
+  loaded.value = true
+
+  if (route.query.import) {
+    importList()
+  }
+})
 </script>
 
 <style lang="scss">
