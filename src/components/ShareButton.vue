@@ -5,25 +5,24 @@
   </button>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
+import type List from '@/classes/List'
 
-defineProps({
-  list: Object
-})
+defineProps<{ list: List }>()
 
 const updating = ref(false)
 
-function copyToClipboard (text) {
+function copyToClipboard (text: string) {
   navigator.clipboard.writeText(text)
   const copied = document.querySelector('.copied')
-  copied.classList.add('bottom-0')
+  copied?.classList.add('bottom-0')
   setTimeout(() => {
-    copied.classList.remove('bottom-0')
+    copied?.classList.remove('bottom-0')
   }, 1000)
 }
 
-async function shareList (list) {
+async function shareList (list: List) {
   const target = window.location.origin + '?import=' + btoa(JSON.stringify(list))
 
   if (target.length > 1024) {
