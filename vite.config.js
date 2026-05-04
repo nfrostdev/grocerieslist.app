@@ -30,7 +30,13 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**'],
-      exclude: ['src/main.js', 'src/registerServiceWorker.js']
+      exclude: ['src/main.js', 'src/registerServiceWorker.js'],
+      thresholds: {
+        lines: 55,
+        functions: 63,
+        branches: 62,
+        statements: 57
+      }
     }
   }
 })
