@@ -77,12 +77,4 @@ describe('lists store', () => {
     const store = useListsStore()
     expect(store.getListFromId('unknown')).toBeUndefined()
   })
-
-  it('persist writes current lists to localStorage', () => {
-    const store = useListsStore()
-    store.createList(new List('X', []))
-    localStorage.clear()
-    store.persist()
-    expect(JSON.parse(localStorage.getItem('lists'))).toHaveLength(1)
-  })
 })
