@@ -16,8 +16,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 library.add(faPlusSquare, faTimesCircle, faClipboardCheck, faShareAlt, faCircleNotch, faCheck)
 
-createApp(App)
+const app = createApp(App)
   .use(createPinia())
   .use(router)
   .component('font-awesome-icon', FontAwesomeIcon)
-  .mount('#app')
+
+router.isReady().then(() => app.mount('#app'))
