@@ -14,7 +14,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "core-js": "^3.49.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6"
@@ -54,13 +53,5 @@
   },
   "lint-staged": {
     "*.{js,vue}": "eslint --fix"
-  },
-  "prettier": {
-    "indentStyle": "space",
-    "indentSize": 2,
-    "trimTrailingWhitespace": true,
-    "insertFinalNewline": true,
-    "singleQuote": true,
-    "semi": false
   }
 }
