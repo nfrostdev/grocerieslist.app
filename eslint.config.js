@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
+import vueA11y from 'eslint-plugin-vuejs-accessibility'
 import vueStandard from '@vue/eslint-config-standard'
 import tseslint from 'typescript-eslint'
 
@@ -11,6 +12,7 @@ export default [
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   ...vueStandard,
+  ...vueA11y.configs['flat/recommended'],
   {
     files: ['**/*.vue'],
     languageOptions: {
@@ -21,7 +23,12 @@ export default [
     rules: {
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
       'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-      'vue/multi-word-component-names': 'off'
+      'vue/multi-word-component-names': 'off',
+      // Static analyzer can't resolve dynamic :for bindings; axe e2e tests provide coverage
+      'vuejs-accessibility/label-has-for': 'off',
+      // Resolved in subsequent commits (autofocus removal, contenteditable → input)
+      'vuejs-accessibility/no-autofocus': 'warn',
+      'vuejs-accessibility/no-static-element-interactions': 'warn'
     }
   },
   {
