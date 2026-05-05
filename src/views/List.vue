@@ -39,7 +39,7 @@
           <div class="item__container">
             <div class="item__quantity">
               <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-              <input type="number" inputmode="decimal" min="1"
+              <input type="text" inputmode="decimal"
                      :id="`item-qty-${item.id}`"
                      :value="item.q"
                      class="item__quantity__input"
@@ -73,7 +73,7 @@
           <div class="item__container">
             <div class="item__quantity">
               <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-              <input type="number" inputmode="decimal" min="1"
+              <input type="text" inputmode="decimal"
                      :id="`item-qty-${item.id}`"
                      :value="item.q"
                      class="item__quantity__input"
