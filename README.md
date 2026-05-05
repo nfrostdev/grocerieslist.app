@@ -20,6 +20,12 @@ nvm use && npm ci
 | `npm run test:coverage` | Run unit tests with coverage report |
 | `npm run lint` | Lint and fix files |
 | `npm run preview` | Preview production build locally |
+| `npm run test:e2e` | Run Playwright e2e tests (includes axe accessibility checks) |
+
+## Accessibility
+
+Target: WCAG 2.2 AAA where feasible; AA floor on color contrast (4.5:1 minimum, 7:1 target).
+All routes are verified via axe-core at `serious`/`critical` severity — run `npm run test:e2e` to check.
 
 ## Deploy
 
