@@ -96,9 +96,11 @@ import { useRoute } from 'vue-router'
 import Item from '@/classes/Item'
 import type List from '@/classes/List'
 import { useListsStore } from '@/stores/lists'
+import { useLiveRegion } from '@/composables/useLiveRegion'
 
 const route = useRoute()
 const listsStore = useListsStore()
+const { announce } = useLiveRegion()
 
 const list = ref<List | null>(null)
 const name = ref<string | null>(null)
@@ -114,12 +116,14 @@ function updateLocalList (): void {
 }
 
 function addItemToList (): void {
-  const item = new Item(name.value!, quantity.value)
+  const addedName = name.value!
+  const item = new Item(addedName, quantity.value)
   list.value!.i.push(item)
   listsStore.updateList(list.value!)
   name.value = null
   quantity.value = 1
   updateLocalList()
+  announce(`${addedName} added`)
   itemName.value!.focus()
 }
 
@@ -147,13 +151,23 @@ function modifyItemName (event: Event, id: string): void {
   }
 }
 
-function deleteItem (id: string): void {
+async function deleteItem (id: string): Promise<void> {
   const item = findItem(id)
-  if (item) {
-    item.u = new Date().getTime()
-    item.d = 1
-    list.value!.i.sort((a, b) => a.d > b.d ? 1 : -1)
-    listsStore.updateList(list.value!)
+  if (!item) return
+  const deletedName = item.n
+  item.u = new Date().getTime()
+  item.d = 1
+  list.value!.i.sort((a, b) => a.d > b.d ? 1 : -1)
+  listsStore.updateList(list.value!)
+  updateLocalList()
+  announce(`${deletedName} removed`)
+  await nextTick()
+  // Move focus to the next visible item's name input, or back to add-item input
+  const nextInput = document.querySelector<HTMLInputElement>('.item__name')
+  if (nextInput) {
+    nextInput.focus()
+  } else {
+    itemName.value?.focus()
   }
 }
 
@@ -163,6 +177,7 @@ function toggleItemCheckedStatus (id: string): void {
     item.c = item.c === 0 ? 1 : 0
     item.u = new Date().getTime()
     listsStore.updateList(list.value!)
+    announce(`${item.n} ${item.c === 1 ? 'checked' : 'unchecked'}`)
   }
 }
 

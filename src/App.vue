@@ -9,6 +9,7 @@
         </transition>
       </router-view>
     </main>
+    <div aria-live="polite" aria-atomic="true" class="sr-only">{{ liveMessage }}</div>
   </div>
 </template>
 
@@ -16,9 +17,11 @@
 import { ref, onMounted } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import { useListsStore } from '@/stores/lists'
+import { useLiveRegion } from '@/composables/useLiveRegion'
 
 const listsStore = useListsStore()
 const loaded = ref(false)
+const { message: liveMessage } = useLiveRegion()
 
 onMounted(() => {
   listsStore.init()
