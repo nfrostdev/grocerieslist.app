@@ -231,12 +231,13 @@ onMounted(async () => {
   @apply flex justify-start items-center w-full;
 
   &__container {
-    @apply flex justify-start items-center bg-white rounded border border-gl-gray h-14 grow;
+    @apply flex justify-start items-center bg-white rounded border border-gl-gray h-14 grow min-w-0;
     @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/25 dark:text-gray-200;
   }
 
   &s {
     @apply grid w-full gap-4 mt-8;
+    grid-template-columns: minmax(0, 1fr);
 
     &__h2 {
       @apply font-bold text-center text-lg mt-12;
@@ -291,7 +292,7 @@ onMounted(async () => {
   }
 
   &__name {
-    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0 self-stretch grow;
+    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0 self-stretch grow min-w-0;
 
     &:focus {
       @apply ring-4 ring-blue-300/50 ring-inset rounded;
