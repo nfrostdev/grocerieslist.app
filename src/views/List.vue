@@ -220,7 +220,11 @@ onMounted(() => {
     }
 
     &__checked {
-      @apply opacity-50;
+      @apply text-gray-500 dark:text-gray-300;
+
+      .item__container {
+        @apply line-through;
+      }
     }
   }
 
@@ -275,7 +279,7 @@ onMounted(() => {
 }
 
 .no-items {
-  @apply font-light text-center mt-4;
+  @apply font-normal text-center mt-4;
 }
 
 .all-checked {
