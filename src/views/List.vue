@@ -7,7 +7,7 @@
       <input v-model="name" required
              class="new-item__input"
              ref="itemName"
-             type="text" id="name" placeholder="Item Name" autofocus/>
+             type="text" id="name" placeholder="Item Name"/>
 
       <label for="quantity" class="sr-only">Quantity</label>
       <input v-model="quantity" required
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import Item from '@/classes/Item'
 import type List from '@/classes/List'
@@ -166,9 +166,11 @@ function toggleItemCheckedStatus (id: string): void {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateLocalList()
   document.title = list.value!.n + ' List | Groceries List'
+  await nextTick()
+  itemName.value?.focus()
 })
 </script>
 

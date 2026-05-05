@@ -26,9 +26,8 @@ export default [
       'vue/multi-word-component-names': 'off',
       // Static analyzer can't resolve dynamic :for bindings; axe e2e tests provide coverage
       'vuejs-accessibility/label-has-for': 'off',
-      // Resolved in subsequent commits (autofocus removal, contenteditable → input)
-      'vuejs-accessibility/no-autofocus': 'warn',
-      'vuejs-accessibility/no-static-element-interactions': 'warn'
+      'vuejs-accessibility/no-autofocus': 'error',
+      'vuejs-accessibility/no-static-element-interactions': 'error'
     }
   },
   {

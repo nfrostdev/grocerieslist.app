@@ -13,6 +13,13 @@
   --color-gl-green: #2D7044;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 html {
     @apply bg-gl-lightgray font-normal text-gl-darkblue;
     @apply dark:text-gray-200 dark:bg-gl-muted-blue;
