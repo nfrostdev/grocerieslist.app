@@ -44,8 +44,8 @@ describe('List.vue', () => {
 
   it('renders item name and quantity', async () => {
     const { wrapper } = await mountList()
-    expect(wrapper.text()).toContain('Apples')
-    expect(wrapper.text()).toContain('2')
+    expect(wrapper.find('.item__name').element.value).toBe('Apples')
+    expect(wrapper.find('.item__quantity').element.value).toBe('2')
   })
 
   it('shows empty-state when there are no active items', async () => {
@@ -72,5 +72,21 @@ describe('List.vue', () => {
     const { wrapper, store } = await mountList()
     await wrapper.find('.item__icon--delete').trigger('click')
     expect(store.lists[0].i[0].d).toBe(1)
+  })
+
+  it('updates item name via input change event', async () => {
+    const { wrapper, store } = await mountList()
+    const nameInput = wrapper.find('.item__name')
+    await nameInput.setValue('Oranges')
+    await nameInput.trigger('change')
+    expect(store.lists[0].i[0].n).toBe('Oranges')
+  })
+
+  it('updates item quantity via input change event', async () => {
+    const { wrapper, store } = await mountList()
+    const qtyInput = wrapper.find('.item__quantity')
+    await qtyInput.setValue('5')
+    await qtyInput.trigger('change')
+    expect(store.lists[0].i[0].q).toBe('5')
   })
 })

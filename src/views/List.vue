@@ -29,26 +29,26 @@
       </div>
       <div v-for="item in list.i.filter(i => !i.d && !i.c)" :key="item.id">
         <div class="item">
-          <label :for="item.n" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="item.n" :checked="!!item.c" @input="toggleItemCheckedStatus(item.id)"
+          <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
+          <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
+                 @input="toggleItemCheckedStatus(item.id)"
                  class="item__checkbox"/>
           <font-awesome-icon icon="check" class="item__checkbox__icon"/>
           <div class="item__container">
-            <div contenteditable
-                 inputmode="decimal"
-                 class="item__quantity"
-                 @blur="modifyItemQuantity($event, item.id)"
-                 @keypress.enter="modifyItemQuantity($event, item.id)">
-              {{ item.q }}
-            </div>
-            <div contenteditable
-                 class="item__name"
-                 @blur="modifyItemName($event, item.id)"
-                 @keypress.enter="modifyItemName($event, item.id)">
-              {{ item.n }}
-            </div>
+            <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
+            <input type="number" inputmode="decimal" min="1"
+                   :id="`item-qty-${item.id}`"
+                   :value="item.q"
+                   class="item__quantity"
+                   @change="modifyItemQuantity($event, item.id)"/>
+            <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
+            <input type="text"
+                   :id="`item-name-${item.id}`"
+                   :value="item.n"
+                   class="item__name"
+                   @change="modifyItemName($event, item.id)"/>
             <button @click="deleteItem(item.id)"
-                    :title="'Remove ' + item.n + ' from this list.'"
+                    :aria-label="`Remove ${item.n} from this list`"
                     class="item__icon--delete">
               <font-awesome-icon icon="times-circle"/>
             </button>
@@ -59,26 +59,26 @@
       <h2 v-if="list.i.filter(i => !i.d && i.c === 1).length" class="items__h2">Checked Items</h2>
       <div v-for="item in list.i.filter(i => !i.d && i.c === 1)" :key="item.id" class="items__checked">
         <div class="item">
-          <label :for="item.n" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="item.n" :checked="!!item.c" @input="toggleItemCheckedStatus(item.id)"
+          <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
+          <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
+                 @input="toggleItemCheckedStatus(item.id)"
                  class="item__checkbox"/>
           <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
           <div class="item__container">
-            <div contenteditable
-                 inputmode="decimal"
-                 class="item__quantity"
-                 @blur="modifyItemQuantity($event, item.id)"
-                 @keypress.enter="modifyItemQuantity($event, item.id)">
-              {{ item.q }}
-            </div>
-            <div contenteditable
-                 class="item__name"
-                 @blur="modifyItemName($event, item.id)"
-                 @keypress.enter="modifyItemName($event, item.id)">
-              {{ item.n }}
-            </div>
+            <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
+            <input type="number" inputmode="decimal" min="1"
+                   :id="`item-qty-${item.id}`"
+                   :value="item.q"
+                   class="item__quantity"
+                   @change="modifyItemQuantity($event, item.id)"/>
+            <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
+            <input type="text"
+                   :id="`item-name-${item.id}`"
+                   :value="item.n"
+                   class="item__name"
+                   @change="modifyItemName($event, item.id)"/>
             <button @click="deleteItem(item.id)"
-                    :title="'Remove ' + item.n + ' from this list.'"
+                    :aria-label="`Remove ${item.n} from this list`"
                     class="item__icon--delete">
               <font-awesome-icon icon="times-circle"/>
             </button>
@@ -124,29 +124,27 @@ function addItemToList (): void {
 }
 
 function modifyItemQuantity (event: Event, id: string): void {
-  const target = event.target as HTMLElement
+  const input = event.target as HTMLInputElement
   const item = findItem(id)!
-  if (target.innerText && !isNaN(Number(target.innerText))) {
-    item.q = target.innerText
+  if (input.value && !isNaN(Number(input.value))) {
+    item.q = input.value
     item.u = new Date().getTime()
     listsStore.updateList(list.value!)
     updateLocalList()
   } else {
-    target.innerText = String(item.q)
+    input.value = String(item.q)
   }
-  target.blur()
 }
 
 function modifyItemName (event: Event, id: string): void {
-  const target = event.target as HTMLElement
-  if (target.innerText) {
+  const input = event.target as HTMLInputElement
+  if (input.value) {
     const item = findItem(id)!
-    item.n = target.innerText
+    item.n = input.value
     item.u = new Date().getTime()
     listsStore.updateList(list.value!)
     updateLocalList()
   }
-  target.blur()
 }
 
 function deleteItem (id: string): void {
@@ -251,20 +249,20 @@ onMounted(() => {
   }
 
   &__quantity, &__name {
-    @apply px-4 h-full transition duration-200 ease-in-out;
+    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0;
 
     &:focus {
-      @apply border-blue-300 ring-4 ring-blue-300/50 outline-none;
+      @apply ring-4 ring-blue-300/50 ring-inset rounded;
     }
   }
 
   &__quantity {
-    @apply grid place-items-center w-14 text-center border-r border-gl-gray rounded-l;
+    @apply w-14 text-center border-r border-gl-gray rounded-l;
     @apply dark:border-gl-deep-blue;
   }
 
   &__name {
-    @apply flex justify-start items-center grow;
+    @apply grow;
   }
 
   &__icon {
