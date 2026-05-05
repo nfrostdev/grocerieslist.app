@@ -212,7 +212,7 @@ onMounted(async () => {
     }
 
     &--number {
-      @apply w-16 ml-2 mr-4;
+      @apply flex-none w-16 ml-2 mr-4;
     }
   }
 
