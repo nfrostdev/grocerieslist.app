@@ -24,6 +24,10 @@
 
   &__container {
     @apply flex justify-between items-center w-full max-w-lg px-6 pb-0;
+
+    nav {
+      @apply flex justify-between items-center w-full;
+    }
   }
 
   &__title {

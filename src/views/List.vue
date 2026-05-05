@@ -30,10 +30,12 @@
       <div v-for="item in list.i.filter(i => !i.d && !i.c)" :key="item.id">
         <div class="item">
           <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
-                 @input="toggleItemCheckedStatus(item.id)"
-                 class="item__checkbox"/>
-          <font-awesome-icon icon="check" class="item__checkbox__icon"/>
+          <div class="item__checkbox-wrap">
+            <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
+                   @input="toggleItemCheckedStatus(item.id)"
+                   class="item__checkbox"/>
+            <font-awesome-icon icon="check" class="item__checkbox__icon"/>
+          </div>
           <div class="item__container">
             <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
             <input type="number" inputmode="decimal" min="1"
@@ -60,10 +62,12 @@
       <div v-for="item in list.i.filter(i => !i.d && i.c === 1)" :key="item.id" class="items__checked">
         <div class="item">
           <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
-          <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
-                 @input="toggleItemCheckedStatus(item.id)"
-                 class="item__checkbox"/>
-          <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
+          <div class="item__checkbox-wrap">
+            <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
+                   @input="toggleItemCheckedStatus(item.id)"
+                   class="item__checkbox"/>
+            <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
+          </div>
           <div class="item__container">
             <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
             <input type="number" inputmode="decimal" min="1"
@@ -243,8 +247,12 @@ onMounted(async () => {
     }
   }
 
+  &__checkbox-wrap {
+    @apply relative min-w-[44px] min-h-[44px] flex items-center justify-center mr-2 shrink-0;
+  }
+
   &__checkbox {
-    @apply relative h-11 w-11 bg-white border border-gl-gray outline-none appearance-none rounded mr-2 cursor-pointer transition duration-200 ease-in-out;
+    @apply h-8 w-8 bg-white border border-gl-gray outline-none appearance-none rounded cursor-pointer transition duration-200 ease-in-out;
     @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/25 dark:text-gray-200;
 
     &:checked {
@@ -257,7 +265,7 @@ onMounted(async () => {
     }
 
     &__icon {
-      @apply absolute opacity-10 ml-2 pointer-events-none;
+      @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none;
 
       &--checked {
         @apply opacity-100;
@@ -266,7 +274,7 @@ onMounted(async () => {
   }
 
   &__quantity, &__name {
-    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0;
+    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0 self-stretch py-0;
 
     &:focus {
       @apply ring-4 ring-blue-300/50 ring-inset rounded;
