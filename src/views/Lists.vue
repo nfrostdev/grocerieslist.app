@@ -4,7 +4,7 @@
       <router-link class="list"
                    :to="{ name: 'List', params: { id: list.id } }">
         <span>{{ list.n }}</span>
-        <button :title="'Delete your ' + list.n + ' list.'"
+        <button :aria-label="`Delete your ${list.n} list`"
                 @click.prevent="deleteList(list)"
                 class="list__icon--delete">
           <font-awesome-icon icon="times-circle"/>
@@ -60,7 +60,7 @@ onMounted(() => {
 
   &__icon {
     &--delete {
-      @apply text-xl ml-auto transition duration-200 ease-in-out;
+      @apply text-xl ml-auto transition duration-200 ease-in-out min-w-[44px] min-h-[44px] flex items-center justify-center;
 
       &:hover, &:focus {
         @apply text-red-700;

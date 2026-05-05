@@ -227,7 +227,7 @@ onMounted(() => {
   }
 
   &__checkbox {
-    @apply relative h-8 w-8 bg-white border border-gl-gray outline-none appearance-none rounded mr-2 cursor-pointer transition duration-200 ease-in-out;
+    @apply relative h-11 w-11 bg-white border border-gl-gray outline-none appearance-none rounded mr-2 cursor-pointer transition duration-200 ease-in-out;
     @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/25 dark:text-gray-200;
 
     &:checked {
