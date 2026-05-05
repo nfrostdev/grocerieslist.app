@@ -1,14 +1,16 @@
 <template>
   <header class="header">
     <div class="header__container">
-      <router-link :to="{ name: 'Lists' }" class="header__title">
-        <img src="@/assets/logo.svg" alt="Groceries List App Blueberry Logo" class="header__title__logo"/>
-        <span>My Lists</span>
-      </router-link>
-      <router-link :to="{ name: 'New' }" class="header__link">
-        <font-awesome-icon icon="plus-square" class="header__link__icon"/>
-        <span>New List</span>
-      </router-link>
+      <nav aria-label="Primary">
+        <router-link :to="{ name: 'Lists' }" class="header__title">
+          <img src="@/assets/logo.svg" alt="Groceries List App Blueberry Logo" class="header__title__logo"/>
+          <span>My Lists</span>
+        </router-link>
+        <router-link :to="{ name: 'New' }" class="header__link">
+          <font-awesome-icon icon="plus-square" class="header__link__icon"/>
+          <span>New List</span>
+        </router-link>
+      </nav>
     </div>
   </header>
 </template>
