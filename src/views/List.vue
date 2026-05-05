@@ -204,7 +204,7 @@ onMounted(async () => {
   @apply flex justify-center items-center;
 
   &__input {
-    @apply relative w-48 bg-white px-3 py-2 rounded outline-none transition duration-200 ease-in-out border border-gl-gray;
+    @apply relative flex-1 min-w-0 bg-white px-3 py-2 rounded outline-none transition duration-200 ease-in-out border border-gl-gray;
     @apply dark:border-gl-deep-blue dark:bg-gl-deep-blue/50 dark:text-gray-200;
 
     &:hover, &:focus {
