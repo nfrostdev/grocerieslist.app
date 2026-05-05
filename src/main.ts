@@ -6,15 +6,12 @@ import './assets/main.css'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import {
   faCheck,
-  faClipboardCheck,
   faPlusSquare,
-  faShareAlt,
-  faCircleNotch,
   faTimesCircle
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-library.add(faPlusSquare, faTimesCircle, faClipboardCheck, faShareAlt, faCircleNotch, faCheck)
+library.add(faPlusSquare, faTimesCircle, faCheck)
 
 const app = createApp(App)
   .use(createPinia())

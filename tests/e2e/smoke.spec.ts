@@ -27,15 +27,4 @@ test('smoke: critical path', async ({ page }) => {
   await page.reload()
   await expect(page.locator('h2.items__h2', { hasText: 'Checked Items' })).toBeVisible()
   await expect(page.locator('.items__checked .item__name').filter({ hasText: 'Apples' })).toBeVisible()
-
-  // Build ?import= URL, then clear storage and re-navigate to test import round-trip
-  const importURL = await page.evaluate(() => {
-    const lists = JSON.parse(localStorage.getItem('lists') ?? '[]')
-    return window.location.origin + '/?import=' + btoa(JSON.stringify(lists[0]))
-  })
-  await page.evaluate(() => localStorage.clear())
-  await page.goto(importURL)
-  // App.vue's onMounted reads ?import=, creates list from scratch, renders List.vue
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Test')
-  await expect(page.locator('.item__name').filter({ hasText: 'Apples' })).toBeVisible()
 })
