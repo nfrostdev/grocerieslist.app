@@ -37,12 +37,14 @@
             <font-awesome-icon icon="check" class="item__checkbox__icon"/>
           </div>
           <div class="item__container">
-            <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-            <input type="number" inputmode="decimal" min="1"
-                   :id="`item-qty-${item.id}`"
-                   :value="item.q"
-                   class="item__quantity"
-                   @change="modifyItemQuantity($event, item.id)"/>
+            <div class="item__quantity">
+              <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
+              <input type="number" inputmode="decimal" min="1"
+                     :id="`item-qty-${item.id}`"
+                     :value="item.q"
+                     class="item__quantity__input"
+                     @change="modifyItemQuantity($event, item.id)"/>
+            </div>
             <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
             <input type="text"
                    :id="`item-name-${item.id}`"
@@ -69,12 +71,14 @@
             <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
           </div>
           <div class="item__container">
-            <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-            <input type="number" inputmode="decimal" min="1"
-                   :id="`item-qty-${item.id}`"
-                   :value="item.q"
-                   class="item__quantity"
-                   @change="modifyItemQuantity($event, item.id)"/>
+            <div class="item__quantity">
+              <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
+              <input type="number" inputmode="decimal" min="1"
+                     :id="`item-qty-${item.id}`"
+                     :value="item.q"
+                     class="item__quantity__input"
+                     @change="modifyItemQuantity($event, item.id)"/>
+            </div>
             <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
             <input type="text"
                    :id="`item-name-${item.id}`"
@@ -273,21 +277,25 @@ onMounted(async () => {
     }
   }
 
-  &__quantity, &__name {
-    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0 self-stretch py-0;
+  &__quantity {
+    @apply grid place-items-center w-14 h-full border-r border-gl-gray rounded-l shrink-0;
+    @apply dark:border-gl-deep-blue;
+
+    &__input {
+      @apply w-10 text-center bg-transparent outline-none appearance-none border-0 p-0 transition duration-200 ease-in-out;
+
+      &:focus {
+        @apply ring-2 ring-blue-300/50 rounded outline-none;
+      }
+    }
+  }
+
+  &__name {
+    @apply px-4 h-full bg-transparent transition duration-200 ease-in-out outline-none appearance-none border-0 self-stretch grow;
 
     &:focus {
       @apply ring-4 ring-blue-300/50 ring-inset rounded;
     }
-  }
-
-  &__quantity {
-    @apply w-14 text-center border-r border-gl-gray rounded-l;
-    @apply dark:border-gl-deep-blue;
-  }
-
-  &__name {
-    @apply grow;
   }
 
   &__icon {

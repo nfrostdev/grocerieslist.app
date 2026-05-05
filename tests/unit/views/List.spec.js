@@ -45,7 +45,7 @@ describe('List.vue', () => {
   it('renders item name and quantity', async () => {
     const { wrapper } = await mountList()
     expect(wrapper.find('.item__name').element.value).toBe('Apples')
-    expect(wrapper.find('.item__quantity').element.value).toBe('2')
+    expect(wrapper.find('.item__quantity__input').element.value).toBe('2')
   })
 
   it('shows empty-state when there are no active items', async () => {
@@ -84,7 +84,7 @@ describe('List.vue', () => {
 
   it('updates item quantity via input change event', async () => {
     const { wrapper, store } = await mountList()
-    const qtyInput = wrapper.find('.item__quantity')
+    const qtyInput = wrapper.find('.item__quantity__input')
     await qtyInput.setValue('5')
     await qtyInput.trigger('change')
     expect(store.lists[0].i[0].q).toBe('5')
