@@ -24,7 +24,7 @@ export const useListsStore = defineStore('lists', () => {
   }
 
   function updateList (list: List) {
-    list.i.sort((a, b) => a.n > b.n ? 1 : -1)
+    list.i.sort((a, b) => a.n.localeCompare(b.n, undefined, { sensitivity: 'base' }))
     const i = lists.value.findIndex(l => l.id === list.id)
     lists.value[i] = list
     persist()

@@ -165,7 +165,6 @@ async function deleteItem (id: string): Promise<void> {
   const deletedName = item.n
   item.u = new Date().getTime()
   item.d = 1
-  list.value!.i.sort((a, b) => a.d > b.d ? 1 : -1)
   listsStore.updateList(list.value!)
   updateLocalList()
   announce(`${deletedName} removed`)

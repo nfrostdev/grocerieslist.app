@@ -66,6 +66,17 @@ describe('lists store', () => {
     expect(store.lists[0].i[1].n).toBe('Bananas')
   })
 
+  it('updateList sorts case-insensitively', () => {
+    const store = useListsStore()
+    const b = new Item('banana', 1)
+    const a = new Item('Apple', 2)
+    const list = new List('Fruit', [b, a])
+    store.createList(list)
+    store.updateList(store.lists[0])
+    expect(store.lists[0].i[0].n).toBe('Apple')
+    expect(store.lists[0].i[1].n).toBe('banana')
+  })
+
   it('getListFromId returns the matching list', () => {
     const store = useListsStore()
     const list = new List('A', [])
