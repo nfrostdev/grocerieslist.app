@@ -1,6 +1,16 @@
 <template>
   <div v-if="list">
-    <h1>{{ list.n }}</h1>
+    <div class="list-header">
+      <h1 class="list-header__title">{{ list.n }}</h1>
+      <button type="button"
+              :aria-label="`Share your ${list.n} list`"
+              class="list-header__share"
+              @click="shareOpen = true">
+        <font-awesome-icon icon="share-nodes"/>
+      </button>
+    </div>
+
+    <share-sheet v-model:open="shareOpen" :list="list"/>
 
     <form class="new-item" @submit.prevent="addItemToList">
       <label for="name" class="sr-only">Item Name</label>
@@ -104,6 +114,7 @@ import { useRoute } from 'vue-router'
 import Item from '@/classes/Item'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
+import ShareSheet from '@/components/ShareSheet.vue'
 
 const route = useRoute()
 const listsStore = useListsStore()
@@ -114,6 +125,7 @@ const list = computed(() => listsStore.getListFromId(listId))
 const name = ref<string | null>(null)
 const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
+const shareOpen = ref(false)
 
 function addItemToList (): void {
   const addedName = name.value!
@@ -173,6 +185,23 @@ onMounted(async () => {
 
 <style lang="scss">
 @reference "../assets/main.css";
+
+.list-header {
+  @apply flex items-center justify-between mb-4;
+
+  &__title {
+    @apply text-2xl font-bold text-center mb-0;
+  }
+
+  &__share {
+    @apply flex items-center justify-center min-w-[44px] min-h-[44px] text-xl rounded-full transition duration-200 ease-in-out;
+
+    &:hover, &:focus {
+      @apply bg-blue-50 ring-2 ring-blue-300/50 outline-none;
+      @apply dark:bg-gl-deep-blue dark:ring-gl-darkblue;
+    }
+  }
+}
 
 .new-item {
   @apply flex justify-center items-center;

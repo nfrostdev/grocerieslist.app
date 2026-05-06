@@ -91,3 +91,52 @@ test('a11y: Lists route — after creating a list', async ({ page }) => {
   await expect(page.getByRole('link', { name: /A11y Test/ })).toBeVisible()
   await checkA11y(page)
 })
+
+test('share import: fragment payload imports list and navigates', async ({ page }) => {
+  const { encodeList } = await import('../../src/utils/share')
+  const list = {
+    id: 'shr1234a',
+    n: 'Shared Costco',
+    i: [
+      { id: 'sit00001', n: 'Bread', q: '1', c: 0, u: 1700000000000, d: 0 },
+      { id: 'sit00002', n: 'Eggs', q: '12', c: 0, u: 1700000000001, d: 0 }
+    ]
+  }
+  const payload = encodeList(list)
+
+  await page.goto(`/#import=${payload}`)
+
+  await expect(page.getByRole('heading', { name: 'Import shared list?' })).toBeVisible()
+  await expect(page.getByText('Shared Costco')).toBeVisible()
+  await page.getByRole('button', { name: 'Import' }).click()
+
+  await expect(page).toHaveURL(`/${list.id}`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Shared Costco' })).toBeVisible()
+  await expect(page.locator('.item__name').first()).toHaveValue('Bread')
+})
+
+test('share import: merge keeps newer local edits', async ({ page }) => {
+  const { encodeList } = await import('../../src/utils/share')
+  const list = {
+    id: 'shr5678b',
+    n: 'Pantry',
+    i: [{ id: 'sit10001', n: 'Flour', q: '1', c: 0, u: 100, d: 0 }]
+  }
+
+  await page.addInitScript((seed) => {
+    localStorage.setItem('lists', JSON.stringify([{
+      id: seed.id,
+      n: seed.n,
+      i: [{ id: 'sit10001', n: 'Flour', q: '5', c: 0, u: 999, d: 0 }]
+    }]))
+  }, list)
+
+  const payload = encodeList(list)
+  await page.goto(`/#import=${payload}`)
+
+  await expect(page.getByRole('heading', { name: 'Update existing list?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Merge' }).click()
+
+  await expect(page).toHaveURL(`/${list.id}`)
+  await expect(page.locator('.item__quantity__input').first()).toHaveValue('5')
+})
