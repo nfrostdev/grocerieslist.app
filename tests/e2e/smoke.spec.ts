@@ -55,6 +55,8 @@ test('a11y: List route — initial state', async ({ page }) => {
   await page.getByPlaceholder('List Name').fill('A11y Test')
   await page.getByRole('button', { name: 'Create' }).click()
   await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
+  // Wait for route transition to complete before axe scans
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A11y Test')
   await checkA11y(page)
 })
 
