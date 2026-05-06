@@ -86,5 +86,6 @@ test('a11y: Lists route — after creating a list', async ({ page }) => {
   await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
   await page.getByRole('link', { name: 'My Lists' }).click()
   await expect(page).toHaveURL('/')
+  await expect(page.getByRole('link', { name: /A11y Test/ })).toBeVisible()
   await checkA11y(page)
 })
