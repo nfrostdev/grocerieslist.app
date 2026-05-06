@@ -10,13 +10,13 @@
         {{ existing ? 'Update existing list?' : 'Import shared list?' }}
       </h2>
 
-      <div class="import-modal__preview">
+      <p class="import-modal__meta">
         <strong>{{ incoming.n }}</strong>
-        <span class="import-modal__count">{{ liveItemCount }} item<span v-if="liveItemCount !== 1">s</span></span>
-      </div>
+        <span class="import-modal__count"> · {{ liveItemCount }} item<span v-if="liveItemCount !== 1">s</span></span>
+      </p>
 
       <p v-if="existing" class="import-modal__warning">
-        You already have a list named "{{ existing.n }}". Choose how to handle the import.
+        Choose how to handle the import.
       </p>
 
       <div class="import-modal__actions">
@@ -114,14 +114,13 @@ watch(() => props.open, (isOpen) => {
     @apply text-lg font-bold mb-3;
   }
 
-  &__preview {
-    @apply flex items-baseline justify-between bg-gl-lightgray rounded p-3 mb-3;
-    @apply dark:bg-gl-deep-blue;
+  &__meta {
+    @apply mb-3 text-sm;
   }
 
   &__count {
-    @apply text-sm text-gray-600;
-    @apply dark:text-gray-300;
+    @apply text-gray-600;
+    @apply dark:text-gray-400;
   }
 
   &__warning {
@@ -134,7 +133,7 @@ watch(() => props.open, (isOpen) => {
 
   &__button {
     @apply w-full py-3 px-4 rounded border border-gl-gray font-medium transition duration-200 ease-in-out;
-    @apply dark:border-gl-deep-blue;
+    @apply dark:bg-gl-deep-blue/50 dark:border-gl-deep-blue;
 
     &:hover, &:focus {
       @apply bg-blue-50 border-blue-300 ring-2 ring-blue-300/50 outline-none;
@@ -142,8 +141,13 @@ watch(() => props.open, (isOpen) => {
     }
 
     &--primary {
-      @apply bg-gl-darkblue text-white border-gl-darkblue;
-      @apply dark:bg-gl-deep-blue dark:border-gl-deep-blue;
+      @apply bg-gl-lightgreen border-gl-green text-gray-800;
+      @apply dark:bg-gl-green dark:border-gl-lightgreen dark:text-gray-200;
+
+      &:hover, &:focus {
+        @apply bg-green-300 ring-4 ring-gl-lightgreen/50 border-gl-green;
+        @apply dark:bg-green-800 dark:ring-gl-green/30 dark:border-gl-lightgreen;
+      }
     }
 
     &--cancel {

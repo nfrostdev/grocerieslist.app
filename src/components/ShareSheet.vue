@@ -203,7 +203,7 @@ onUnmounted(() => {
 
   &__button {
     @apply w-full py-3 px-4 rounded border border-gl-gray font-medium transition duration-200 ease-in-out;
-    @apply dark:border-gl-deep-blue;
+    @apply dark:bg-gl-deep-blue/50 dark:border-gl-deep-blue;
 
     &:hover, &:focus {
       @apply bg-blue-50 border-blue-300 ring-2 ring-blue-300/50 outline-none;
@@ -215,8 +215,13 @@ onUnmounted(() => {
     }
 
     &--primary {
-      @apply bg-gl-darkblue text-white border-gl-darkblue;
-      @apply dark:bg-gl-deep-blue dark:border-gl-deep-blue;
+      @apply bg-gl-lightgreen border-gl-green text-gray-800;
+      @apply dark:bg-gl-green dark:border-gl-lightgreen dark:text-gray-200;
+
+      &:hover, &:focus {
+        @apply bg-green-300 ring-4 ring-gl-lightgreen/50 border-gl-green;
+        @apply dark:bg-green-800 dark:ring-gl-green/30 dark:border-gl-lightgreen;
+      }
     }
   }
 }
