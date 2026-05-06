@@ -89,4 +89,9 @@ describe('List.vue', () => {
     await qtyInput.trigger('change')
     expect(store.lists[0].i[0].q).toBe('5')
   })
+
+  it('shows the all-checked banner when every active item is checked', async () => {
+    const { wrapper } = await mountList([makeItem({ c: 1 })])
+    expect(wrapper.text()).toContain('checked off all your items')
+  })
 })
