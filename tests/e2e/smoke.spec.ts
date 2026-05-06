@@ -83,6 +83,8 @@ test('a11y: Lists route — after creating a list', async ({ page }) => {
   await page.goto('/new')
   await page.getByPlaceholder('List Name').fill('A11y Test')
   await page.getByRole('button', { name: 'Create' }).click()
+  await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
   await page.getByRole('link', { name: 'My Lists' }).click()
+  await expect(page).toHaveURL('/')
   await checkA11y(page)
 })
