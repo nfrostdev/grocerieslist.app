@@ -186,7 +186,7 @@ onUnmounted(() => {
 
   &__too-large {
     @apply bg-blue-50 rounded p-4 text-gl-darkblue;
-    @apply dark:bg-gl-deep-blue dark:text-white;
+    @apply dark:bg-gl-deep-blue/50 dark:text-white;
   }
 
   &__qr {
