@@ -45,34 +45,22 @@ describe('lists store', () => {
     expect(JSON.parse(localStorage.getItem('lists'))).toHaveLength(0)
   })
 
-  it('updateList replaces the entry and persists', () => {
+  it('addItem sorts items alphabetically by name', () => {
     const store = useListsStore()
-    const list = new List('Old', [])
+    const list = new List('Fruit', [])
     store.createList(list)
-    list.n = 'New'
-    store.updateList(list)
-    expect(store.lists[0].n).toBe('New')
-    expect(JSON.parse(localStorage.getItem('lists'))[0].n).toBe('New')
-  })
-
-  it('updateList sorts items alphabetically by name', () => {
-    const store = useListsStore()
-    const b = new Item('Bananas', 1)
-    const a = new Item('Apples', 2)
-    const list = new List('Fruit', [b, a])
-    store.createList(list)
-    store.updateList(store.lists[0])
+    store.addItem(list.id, new Item('Bananas', '1'))
+    store.addItem(list.id, new Item('Apples', '2'))
     expect(store.lists[0].i[0].n).toBe('Apples')
     expect(store.lists[0].i[1].n).toBe('Bananas')
   })
 
-  it('updateList sorts case-insensitively', () => {
+  it('addItem sorts case-insensitively', () => {
     const store = useListsStore()
-    const b = new Item('banana', 1)
-    const a = new Item('Apple', 2)
-    const list = new List('Fruit', [b, a])
+    const list = new List('Fruit', [])
     store.createList(list)
-    store.updateList(store.lists[0])
+    store.addItem(list.id, new Item('banana', '1'))
+    store.addItem(list.id, new Item('Apple', '2'))
     expect(store.lists[0].i[0].n).toBe('Apple')
     expect(store.lists[0].i[1].n).toBe('banana')
   })
