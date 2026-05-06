@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import ImportModal from '@/components/ImportModal.vue'
 
 const incoming = { id: 'a1b2c3d4', n: 'Costco', i: [{ id: 'i1', n: 'Eggs', q: '1', c: 0, u: 1, d: 0 }] }
@@ -11,6 +11,14 @@ const mountModal = (props = {}) => mount(ImportModal, {
 })
 
 describe('ImportModal', () => {
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function () {
+      this.open = false
+      this.dispatchEvent(new Event('close'))
+    })
+  })
+
   it('renders only Import + Cancel when no existing match', () => {
     const wrapper = mountModal()
     const buttons = wrapper.findAll('button').map(b => b.text())
@@ -60,5 +68,37 @@ describe('ImportModal', () => {
     }
     const wrapper = mountModal({ incoming: incomingWithTomb })
     expect(wrapper.text()).toContain('1 item')
+  })
+
+  it('calls showModal on mount when open=true', () => {
+    mountModal({ open: true })
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled()
+  })
+
+  it('calls showModal when open transitions to true', async () => {
+    const wrapper = mountModal({ open: false })
+    expect(HTMLDialogElement.prototype.showModal).not.toHaveBeenCalled()
+    await wrapper.setProps({ open: true })
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled()
+  })
+
+  it('calls close when open transitions to false', async () => {
+    const wrapper = mountModal({ open: true })
+    await wrapper.setProps({ open: false })
+    expect(HTMLDialogElement.prototype.close).toHaveBeenCalled()
+  })
+
+  it('cancels when backdrop is clicked (target is dialog itself)', async () => {
+    const wrapper = mountModal({ open: true })
+    const dialogEl = wrapper.find('dialog').element
+    dialogEl.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('cancel')).toBeTruthy()
+  })
+
+  it('does not cancel when click target is inside the panel', async () => {
+    const wrapper = mountModal({ open: true })
+    await wrapper.find('.import-modal__panel').trigger('click')
+    expect(wrapper.emitted('cancel')).toBeFalsy()
   })
 })
