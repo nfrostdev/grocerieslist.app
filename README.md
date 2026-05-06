@@ -1,6 +1,6 @@
 # grocerieslist.app
 
-PWA grocery list with localStorage sync and Firebase Hosting. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 7, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
+PWA grocery list with localStorage sync, hosted on Cloudflare Pages. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 7, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
 
 ## Setup
 
@@ -29,10 +29,4 @@ All routes are verified via axe-core at `serious`/`critical` severity — run `n
 
 ## Deploy
 
-```
-# Preview channel
-firebase hosting:channel:deploy preview --project grocerieslist-app
-
-# Production
-firebase deploy --project grocerieslist-app
-```
+Cloudflare Pages auto-deploys on push to `main`. Pull requests get preview deploys automatically.
