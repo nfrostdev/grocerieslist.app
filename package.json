@@ -41,7 +41,7 @@
     "eslint-plugin-vuejs-accessibility": "^2.5.0",
     "jsdom": "^29.1.1",
     "lint-staged": "^16.4.0",
-    "postcss": "^8.5.13",
+    "postcss": "^8.5.14",
     "sass": "^1.99.0",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
