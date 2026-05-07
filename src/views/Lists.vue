@@ -1,36 +1,56 @@
 <template>
-  <div v-if="lists.length" class="lists">
-    <div v-for="list in lists" :key="list.id" class="list__container">
-      <router-link class="list"
-                   :to="{ name: 'List', params: { id: list.id } }">
-        <span>{{ list.n }}</span>
-        <button :aria-label="`Delete your ${list.n} list`"
-                @click.prevent="deleteList(list)"
-                class="list__icon--delete">
-          <font-awesome-icon icon="times-circle"/>
-        </button>
-      </router-link>
+  <div>
+    <div v-if="lists.length" class="lists">
+      <div v-for="list in lists" :key="list.id" class="list__container">
+        <router-link class="list"
+                     :to="{ name: 'List', params: { id: list.id } }">
+          <span>{{ list.n }}</span>
+          <button :aria-label="`Delete your ${list.n} list`"
+                  @click.prevent="requestDelete(list)"
+                  class="list__icon--delete">
+            <font-awesome-icon icon="times-circle"/>
+          </button>
+        </router-link>
+      </div>
     </div>
-  </div>
-  <div v-else class="no-lists">
-    <span>You have no lists, </span>
-    <router-link :to="{ name: 'New' }" class="no-lists__link">create one</router-link>
-    <span>!</span>
+    <div v-else class="no-lists">
+      <span>You have no lists, </span>
+      <router-link :to="{ name: 'New' }" class="no-lists__link">create one</router-link>
+      <span>!</span>
+    </div>
+
+    <ConfirmModal v-if="pendingDelete"
+                  :open="!!pendingDelete"
+                  title="Delete list?"
+                  :message="`Are you sure you want to delete your ${pendingDelete.n} list?`"
+                  variant="destructive"
+                  confirm-label="Delete"
+                  @confirm="confirmDelete"
+                  @update:open="onModalOpenChange"/>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useListsStore } from '@/stores/lists'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import type List from '@/classes/List'
 
 const listsStore = useListsStore()
 const lists = computed(() => listsStore.lists)
+const pendingDelete = ref<List | null>(null)
 
-function deleteList (list: List): void {
-  if (confirm('Are you sure you want to delete your ' + list.n + ' list?')) {
-    listsStore.deleteList(list.id)
-  }
+function requestDelete (list: List): void {
+  pendingDelete.value = list
+}
+
+function confirmDelete (): void {
+  if (pendingDelete.value) listsStore.deleteList(pendingDelete.value.id)
+  pendingDelete.value = null
+}
+
+function onModalOpenChange (value: boolean): void {
+  if (!value) pendingDelete.value = null
 }
 
 onMounted(() => {
