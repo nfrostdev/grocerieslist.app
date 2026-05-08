@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div v-if="list">
     <div class="list-header">
       <h1 class="list-header__title">{{ list.n }}</h1>
@@ -109,6 +110,7 @@
                v-model:open="shareOpen"
                :list="shareList"
                @provisioned="onProvisioned"/>
+  </div>
 </template>
 
 <script setup lang="ts">
