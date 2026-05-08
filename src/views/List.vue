@@ -5,12 +5,10 @@
       <button type="button"
               :aria-label="`Share your ${list.n} list`"
               class="list-header__share"
-              @click="shareOpen = true">
+              @click="openShare">
         <font-awesome-icon icon="share-nodes"/>
       </button>
     </div>
-
-    <share-sheet v-model:open="shareOpen" :list="list"/>
 
     <form class="new-item" @submit.prevent="addItemToList">
       <label for="name" class="sr-only">Item Name</label>
@@ -106,17 +104,24 @@
     </div>
     <div v-if="list.i.filter(i => !i.d).length === 0" class="no-items">Add items to this list above.</div>
   </div>
+
+  <share-sheet v-if="shareList"
+               v-model:open="shareOpen"
+               :list="shareList"
+               @provisioned="onProvisioned"/>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, shallowRef, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Item from '@/classes/Item'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
 import ShareSheet from '@/components/ShareSheet.vue'
+import type List from '@/classes/List'
 
 const route = useRoute()
+const router = useRouter()
 const listsStore = useListsStore()
 const { announce } = useLiveRegion()
 
@@ -126,6 +131,18 @@ const name = ref<string | null>(null)
 const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
 const shareOpen = ref(false)
+const shareList = shallowRef<List | null>(null)
+
+function openShare () {
+  if (list.value) {
+    shareList.value = list.value
+    shareOpen.value = true
+  }
+}
+
+function onProvisioned (newListId: string) {
+  router.replace({ name: 'List', params: { id: newListId } })
+}
 
 function addItemToList (): void {
   const addedName = name.value!

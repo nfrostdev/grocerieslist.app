@@ -1,0 +1,245 @@
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { Miniflare } from 'miniflare'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+import { handleProvision, handleJoin, handlePoll } from '../../../functions/api/_shared/handlers'
+
+const schema = readFileSync(resolve(__dirname, '../../../schema.sql'), 'utf-8')
+
+let mf: Miniflare
+let db: D1Database
+
+beforeAll(async () => {
+  mf = new Miniflare({
+    script: 'export default { fetch: () => new Response(\'ok\') }',
+    modules: true,
+    d1Databases: ['DB']
+  })
+  db = await mf.getD1Database('DB') as unknown as D1Database
+  // D1 exec() processes one statement per line — flatten each statement before executing
+  const statements = schema
+    .split(';')
+    .map(s => s.replace(/\s+/g, ' ').trim())
+    .filter(s => s.length > 0)
+  for (const sql of statements) {
+    await (db as unknown as { exec: (sql: string) => Promise<unknown> }).exec(sql)
+  }
+})
+
+afterAll(async () => {
+  await mf.dispose()
+})
+
+beforeEach(async () => {
+  // Reset data between tests — order matters for FK constraints
+  const d = db as unknown as { batch: (stmts: object[]) => Promise<unknown>; prepare: (sql: string) => { bind: (...args: unknown[]) => object } }
+  await d.batch([
+    d.prepare('DELETE FROM items').bind(),
+    d.prepare('DELETE FROM list_tokens').bind(),
+    d.prepare('DELETE FROM lists').bind()
+  ])
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/lists (provision)
+// ---------------------------------------------------------------------------
+
+describe('POST /api/lists', () => {
+  it('provisions a list and returns id + authToken', async () => {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Weekly Shop', items: [] })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { id: string; authToken: string }
+    expect(body.id).toMatch(/^[0-9A-Z]{26}$/) // ULID
+    expect(body.authToken).toBeTruthy()
+    expect(body.authToken.length).toBeGreaterThan(30)
+  })
+
+  it('provisions a list with items', async () => {
+    const items = [
+      { id: 'abc12345', n: 'Milk', q: '2', c: 0, u: Date.now(), d: 0 },
+      { id: 'def67890', n: 'Eggs', q: '12', c: 0, u: Date.now(), d: 0 }
+    ]
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Groceries', items })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(200)
+    const { id } = await res.json() as { id: string; authToken: string }
+    expect(id).toMatch(/^[0-9A-Z]{26}$/)
+  })
+
+  it('returns 400 when name is missing', async () => {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [] })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for invalid JSON', async () => {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not json'
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(400)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/lists/:id/join
+// ---------------------------------------------------------------------------
+
+describe('POST /api/lists/:id/join', () => {
+  async function provision (name = 'Test List') {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, items: [] })
+    })
+    const res = await handleProvision(db, req)
+    return res.json() as Promise<{ id: string; authToken: string }>
+  }
+
+  it('returns list data for a valid token', async () => {
+    const { id, authToken } = await provision('Test List')
+
+    const req = new Request(`http://localhost/api/lists/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: authToken })
+    })
+    const res = await handleJoin(db, req, id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { listId: string; role: string; name: string; version: number; items: unknown[] }
+    expect(body.listId).toBe(id)
+    expect(body.role).toBe('editor')
+    expect(body.name).toBe('Test List')
+    expect(body.version).toBe(1)
+    expect(body.items).toEqual([])
+  })
+
+  it('is multi-use — same token can join multiple times', async () => {
+    const { id, authToken } = await provision()
+
+    for (let i = 0; i < 3; i++) {
+      const req = new Request(`http://localhost/api/lists/${id}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: authToken })
+      })
+      const res = await handleJoin(db, req, id)
+      expect(res.status).toBe(200)
+    }
+  })
+
+  it('returns 401 for an invalid token', async () => {
+    const { id } = await provision()
+
+    const req = new Request(`http://localhost/api/lists/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'bad-token' })
+    })
+    const res = await handleJoin(db, req, id)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 when token belongs to a different list', async () => {
+    const { authToken } = await provision('List A')
+    const { id: otherId } = await provision('List B')
+
+    const req = new Request(`http://localhost/api/lists/${otherId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: authToken })
+    })
+    const res = await handleJoin(db, req, otherId)
+    expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/lists/:id?since= (poll)
+// ---------------------------------------------------------------------------
+
+describe('GET /api/lists/:id?since=', () => {
+  async function provision (items: object[] = []) {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Poll Test', items })
+    })
+    const res = await handleProvision(db, req)
+    return res.json() as Promise<{ id: string; authToken: string }>
+  }
+
+  it('returns version and items since=0', async () => {
+    const { id, authToken } = await provision()
+
+    const req = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { version: number; items: unknown[] }
+    expect(body.version).toBe(1)
+    expect(body.items).toEqual([])
+  })
+
+  it('returns only items updated after since', async () => {
+    const ts = Date.now()
+    const items = [
+      { id: 'aaa11111', n: 'Milk', q: '1', c: 0, u: ts - 1000, d: 0 },
+      { id: 'bbb22222', n: 'Eggs', q: '6', c: 0, u: ts + 1000, d: 0 }
+    ]
+    const { id, authToken } = await provision(items)
+
+    const req = new Request(`http://localhost/api/lists/${id}?since=${ts}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { items: Array<{ id: string }> }
+    expect(body.items).toHaveLength(1)
+    expect(body.items[0].id).toBe('bbb22222')
+  })
+
+  it('returns 401 without a token', async () => {
+    const { id } = await provision()
+
+    const req = new Request(`http://localhost/api/lists/${id}?since=0`)
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 for a wrong token', async () => {
+    const { id } = await provision()
+
+    const req = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: 'Bearer wrong-token' }
+    })
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 404 for a non-existent list', async () => {
+    const { authToken } = await provision()
+
+    const req = new Request('http://localhost/api/lists/01JVKZ00000000000000000000?since=0', {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const res = await handlePoll(db, req, '01JVKZ00000000000000000000')
+    expect(res.status).toBe(401) // token not valid for this list
+  })
+})

@@ -16,25 +16,23 @@
         </button>
       </div>
 
-      <div v-if="loading" class="share-sheet__loading">Generating QR code…</div>
+      <div v-if="state === 'loading'" class="share-sheet__loading">Setting up shared list…</div>
 
-      <div v-else-if="tooLarge" class="share-sheet__too-large">
-        List too large for a QR code. Use the link instead.
+      <div v-else-if="state === 'error'" class="share-sheet__too-large">
+        Could not create shared list. Check your connection and try again.
       </div>
 
-      <div v-else class="share-sheet__qr" v-html="qrSvg"/>
+      <div v-else-if="state === 'ready'" class="share-sheet__qr" v-html="qrSvg"/>
 
-      <div class="share-sheet__actions">
+      <div v-if="state === 'ready'" class="share-sheet__actions">
         <button v-if="canWebShare"
                 type="button"
                 class="share-sheet__button share-sheet__button--primary"
-                :disabled="loading"
                 @click="onShare">
           Share link…
         </button>
         <button type="button"
                 class="share-sheet__button"
-                :disabled="loading"
                 @click="onCopy">
           {{ copied ? 'Copied!' : 'Copy link' }}
         </button>
@@ -47,46 +45,55 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import type List from '@/classes/List'
 import { useLiveRegion } from '@/composables/useLiveRegion'
+import * as sync from '@/sync'
 
 const props = defineProps<{ open: boolean; list: List }>()
-const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>()
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'provisioned', listId: string): void
+}>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const loading = ref(false)
+const state = ref<'loading' | 'ready' | 'error'>('loading')
 const qrSvg = ref('')
-const shareUrl = ref('')
-const tooLarge = ref(false)
+const joinUrl = ref('')
 const copied = ref(false)
 const canWebShare = ref(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
 const { announce } = useLiveRegion()
 
 let copyTimer: ReturnType<typeof setTimeout> | null = null
+let provisionedListId: string | null = null
 
 async function build () {
-  loading.value = true
+  state.value = 'loading'
   qrSvg.value = ''
-  shareUrl.value = ''
-  tooLarge.value = false
+  joinUrl.value = ''
   copied.value = false
 
-  const [{ buildShareUrl }, qrcodeMod] = await Promise.all([
-    import('@/utils/share'),
-    import('qrcode')
-  ])
-  const QRCode = qrcodeMod.default ?? qrcodeMod
+  const capturedList = props.list
 
-  const built = buildShareUrl(props.list)
-  shareUrl.value = built.url
-  tooLarge.value = built.tooLarge
-
-  if (!built.tooLarge) {
-    qrSvg.value = await QRCode.toString(built.url, {
-      type: 'svg',
-      margin: 1,
-      color: { dark: '#111827', light: '#ffffff' }
-    })
+  if (sync.isSynced(capturedList.id)) {
+    const meta = sync.getMeta(capturedList.id)!
+    joinUrl.value = `${window.location.origin}/#join=${capturedList.id}.${meta.authToken}`
+    provisionedListId = null
+  } else {
+    const result = await sync.provision(capturedList)
+    if (!result) {
+      state.value = 'error'
+      return
+    }
+    joinUrl.value = result.joinUrl
+    provisionedListId = result.listId
   }
-  loading.value = false
+
+  const qrcodeMod = await import('qrcode')
+  const QRCode = qrcodeMod.default ?? qrcodeMod
+  qrSvg.value = await QRCode.toString(joinUrl.value, {
+    type: 'svg',
+    margin: 1,
+    color: { dark: '#111827', light: '#ffffff' }
+  })
+  state.value = 'ready'
 }
 
 function close () {
@@ -94,6 +101,10 @@ function close () {
 }
 
 function onClose () {
+  if (provisionedListId) {
+    emit('provisioned', provisionedListId)
+    provisionedListId = null
+  }
   emit('update:open', false)
 }
 
@@ -102,10 +113,10 @@ function onBackdropClick (event: MouseEvent) {
 }
 
 async function onShare () {
-  if (!shareUrl.value) return
+  if (!joinUrl.value) return
   try {
     await navigator.share({
-      url: shareUrl.value,
+      url: joinUrl.value,
       title: `Groceries List: ${props.list.n}`,
       text: `Check out my "${props.list.n}" list`
     })
@@ -115,9 +126,9 @@ async function onShare () {
 }
 
 async function onCopy () {
-  if (!shareUrl.value) return
+  if (!joinUrl.value) return
   try {
-    await navigator.clipboard.writeText(shareUrl.value)
+    await navigator.clipboard.writeText(joinUrl.value)
     copied.value = true
     announce('Link copied to clipboard')
     if (copyTimer) clearTimeout(copyTimer)

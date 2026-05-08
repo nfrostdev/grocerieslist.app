@@ -9,95 +9,53 @@
         </transition>
       </router-view>
     </main>
-    <import-modal v-if="pendingImport"
-                  v-model:open="importOpen"
-                  :incoming="pendingImport"
-                  :existing="existingMatch"
-                  @replace="onReplace"
-                  @merge="onMerge"
-                  @copy="onCopy"
-                  @cancel="onCancel"/>
     <div aria-live="polite" aria-atomic="true" class="sr-only">{{ liveMessage }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
-import ImportModal from '@/components/ImportModal.vue'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
-import type List from '@/classes/List'
+import * as sync from '@/sync'
 
 const router = useRouter()
 const listsStore = useListsStore()
 const loaded = ref(false)
 const { message: liveMessage, announce } = useLiveRegion()
 
-const importOpen = ref(false)
-const pendingImport = shallowRef<List | null>(null)
-const existingMatch = shallowRef<List | null>(null)
-
-async function handleImportFragment () {
-  const m = /^#import=(.+)$/.exec(window.location.hash)
+async function handleJoinFragment () {
+  const m = /^#join=([^.]+)\.(.+)$/.exec(window.location.hash)
   if (!m) return
   history.replaceState({}, '', window.location.pathname + window.location.search)
 
-  const { decodeList } = await import('@/utils/share')
-  const result = decodeList(m[1])
-  if (!result.ok) {
-    announce(result.reason === 'newer-schema'
-      ? 'This list was shared from a newer version. Update the app to import it.'
-      : "Couldn't read shared list — try rescanning.")
+  const [, listId, token] = m
+
+  if (sync.getMeta(listId)) {
+    router.replace({ name: 'List', params: { id: listId } })
     return
   }
-  pendingImport.value = result.list
-  existingMatch.value = listsStore.getListFromId(result.list.id) ?? null
-  importOpen.value = true
-}
 
-function finishImport (id: string, message: string) {
-  importOpen.value = false
-  announce(message)
-  router.replace({ name: 'List', params: { id } })
-}
-
-function onReplace () {
-  if (!pendingImport.value) return
-  const { id, n } = pendingImport.value
-  listsStore.replaceList(pendingImport.value)
-  finishImport(id, `Imported "${n}"`)
-}
-
-function onMerge () {
-  if (!pendingImport.value) return
-  const { id, n } = pendingImport.value
-  listsStore.mergeList(pendingImport.value)
-  finishImport(id, `Merged "${n}"`)
-}
-
-function onCopy () {
-  if (!pendingImport.value) return
-  const { n } = pendingImport.value
-  const newId = listsStore.importAsCopy(pendingImport.value)
-  finishImport(newId, `Imported "${n}" as a new list`)
-}
-
-function onCancel () {
-  pendingImport.value = null
-  existingMatch.value = null
+  const ok = await sync.join(listId, token)
+  if (ok) {
+    router.replace({ name: 'List', params: { id: listId } })
+  } else {
+    announce('Could not join list — link may be invalid or revoked.')
+  }
 }
 
 onMounted(async () => {
   listsStore.init()
   loaded.value = true
-  await handleImportFragment()
-  window.addEventListener('hashchange', handleImportFragment)
+  sync.startPolling()
+  await handleJoinFragment()
+  window.addEventListener('hashchange', handleJoinFragment)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('hashchange', handleImportFragment)
+  window.removeEventListener('hashchange', handleJoinFragment)
 })
 </script>
 
