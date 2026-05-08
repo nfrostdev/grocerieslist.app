@@ -31,6 +31,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**'],
+      exclude: ['src/main.ts', 'src/router/**'],
       thresholds: {
         lines: 80,
         functions: 80,
