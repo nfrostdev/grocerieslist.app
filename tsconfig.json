@@ -6,5 +6,6 @@
     "ignoreDeprecations": "6.0",
     "strict": true
   },
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["tests/integration/**/*"]
 }

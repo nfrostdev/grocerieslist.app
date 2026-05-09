@@ -6,7 +6,7 @@ import vueStandard from '@vue/eslint-config-standard'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'functions/**'] },
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   ...tseslint.configs.recommended,
@@ -27,7 +27,8 @@ export default [
       // Static analyzer can't resolve dynamic :for bindings; axe e2e tests provide coverage
       'vuejs-accessibility/label-has-for': 'off',
       'vuejs-accessibility/no-autofocus': 'error',
-      'vuejs-accessibility/no-static-element-interactions': 'error'
+      'vuejs-accessibility/no-static-element-interactions': 'error',
+      'no-void': ['error', { allowAsStatement: true }]
     }
   },
   {
@@ -40,6 +41,22 @@ export default [
         beforeEach: 'readonly',
         afterEach: 'readonly',
         vi: 'readonly'
+      }
+    }
+  },
+  {
+    files: ['tests/integration/**/*.ts'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        vi: 'readonly',
+        D1Database: 'readonly'
       }
     }
   }

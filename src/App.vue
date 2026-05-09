@@ -29,6 +29,7 @@ import ImportModal from '@/components/ImportModal.vue'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
 import type List from '@/classes/List'
+import * as sync from '@/sync'
 
 const router = useRouter()
 const listsStore = useListsStore()
@@ -89,15 +90,41 @@ function onCancel () {
   existingMatch.value = null
 }
 
+async function handleJoinFragment () {
+  const m = /^#join=([^.]+)\.(.+)$/.exec(window.location.hash)
+  if (!m) return
+  history.replaceState({}, '', window.location.pathname + window.location.search)
+
+  const [, listId, token] = m
+
+  if (sync.getMeta(listId)) {
+    router.replace({ name: 'List', params: { id: listId } })
+    return
+  }
+
+  const ok = await sync.join(listId, token)
+  if (ok) {
+    router.replace({ name: 'List', params: { id: listId } })
+  } else {
+    announce('Could not join list — link may be invalid or revoked.')
+  }
+}
+
+async function handleHashChange () {
+  await handleImportFragment()
+  await handleJoinFragment()
+}
+
 onMounted(async () => {
   listsStore.init()
   loaded.value = true
-  await handleImportFragment()
-  window.addEventListener('hashchange', handleImportFragment)
+  sync.startPolling()
+  await handleHashChange()
+  window.addEventListener('hashchange', handleHashChange)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('hashchange', handleImportFragment)
+  window.removeEventListener('hashchange', handleHashChange)
 })
 </script>
 

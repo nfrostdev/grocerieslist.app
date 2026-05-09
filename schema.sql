@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS lists (
+  id TEXT PRIMARY KEY,
+  name_ciphertext TEXT,
+  name TEXT NOT NULL,
+  u INTEGER NOT NULL DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1,
+  schema_version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS list_tokens (
+  token_hash TEXT PRIMARY KEY,
+  list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  revoked_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS list_tokens_by_list ON list_tokens(list_id);
+
+CREATE TABLE IF NOT EXISTS items (
+  list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  id TEXT NOT NULL,
+  n TEXT NOT NULL,
+  q TEXT NOT NULL,
+  c INTEGER NOT NULL DEFAULT 0,
+  u INTEGER NOT NULL,
+  d INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (list_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS items_by_version ON items(list_id, u);

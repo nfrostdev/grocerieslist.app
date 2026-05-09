@@ -42,6 +42,14 @@ const mountList = async (items = [makeItem()]) => {
 describe('List.vue', () => {
   beforeEach(() => localStorage.clear())
 
+  it('renders a single root node (fragment would break Transition mode=out-in)', async () => {
+    const { wrapper } = await mountList()
+    // Fragment components place multiple sibling nodes in the VTU host container.
+    // A fragment here causes <Transition mode="out-in"> to lose the transitionend
+    // signal in real browsers, so the next route never enters.
+    expect(wrapper.element.parentElement.childNodes.length).toBe(1)
+  })
+
   it('renders item name and quantity', async () => {
     const { wrapper } = await mountList()
     expect(wrapper.find('.item__name').element.value).toBe('Apples')

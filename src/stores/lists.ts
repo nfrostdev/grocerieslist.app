@@ -74,10 +74,20 @@ export const useListsStore = defineStore('lists', () => {
     }
     for (const inItem of incoming.i) {
       const localIdx = existing.i.findIndex(it => it.id === inItem.id)
-      if (localIdx === -1) existing.i.push(inItem)
-      else if (inItem.u > existing.i[localIdx].u) existing.i[localIdx] = inItem
+      if (localIdx === -1) {
+        existing.i.push(inItem)
+      } else if (inItem.u > existing.i[localIdx].u || inItem.d) {
+        existing.i[localIdx] = inItem
+      }
     }
     sortItems(existing)
+    persist()
+  }
+
+  function updateListId (oldId: string, newId: string) {
+    const list = lists.value.find(l => l.id === oldId)
+    if (!list) return
+    list.id = newId
     persist()
   }
 
@@ -104,6 +114,7 @@ export const useListsStore = defineStore('lists', () => {
     softDeleteItem,
     replaceList,
     mergeList,
+    updateListId,
     importAsCopy
   }
 })
