@@ -1,6 +1,10 @@
 # grocerieslist.app
 
-PWA grocery list with localStorage sync, hosted on Cloudflare Pages. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 7, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
+PWA grocery list with live sync, hosted on Cloudflare Pages. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 7, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
+
+## Sharing
+
+Lists are local-only by default. Tap the share button on any list to provision it on the server and get a join link. Anyone with the link can join and edits sync in both directions via 5-second polling. No accounts — capability tokens are the only credential. Stop sharing at any time to revoke all editors at once.
 
 ## Setup
 
