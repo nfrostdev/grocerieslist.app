@@ -36,6 +36,30 @@ export interface JoinResponse {
   items: ItemPayload[]
 }
 
+export interface UpsertItemResponse {
+  item: ItemPayload
+}
+
+export interface PatchListResponse {
+  name: string
+  u: number
+}
+
+export interface UpsertItemOp {
+  kind: 'upsertItem'
+  listId: string
+  item: ItemPayload
+}
+
+export interface PatchListOp {
+  kind: 'patchList'
+  listId: string
+  name: string
+  u: number
+}
+
+export type Op = UpsertItemOp | PatchListOp
+
 export type SyncError =
   | { kind: 'unauthorized' }
   | { kind: 'not-found' }

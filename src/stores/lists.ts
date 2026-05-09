@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import type List from '@/classes/List'
 import type Item from '@/classes/Item'
+import { getMeta } from '@/sync/storage'
+import { enqueue } from '@/sync/queue'
 
 function sortItems (list: List) {
   list.i.sort((a, b) => a.n.localeCompare(b.n, undefined, { sensitivity: 'base' }))
@@ -44,6 +46,9 @@ export const useListsStore = defineStore('lists', () => {
 
   function addItem (listId: string, item: Item) {
     writeList(listId, l => { l.i.push(item) })
+    if (getMeta(listId)) {
+      enqueue({ kind: 'upsertItem', listId, item: { id: item.id, n: item.n, q: item.q, c: item.c, u: item.u, d: item.d } })
+    }
   }
 
   function updateItem (listId: string, itemId: string, patch: Partial<Item>) {
@@ -52,6 +57,11 @@ export const useListsStore = defineStore('lists', () => {
       if (!item) return
       Object.assign(item, patch, { u: Date.now() })
     })
+    if (getMeta(listId)) {
+      const list = lists.value.find(l => l.id === listId)
+      const item = list?.i.find(i => i.id === itemId)
+      if (item) enqueue({ kind: 'upsertItem', listId, item: { id: item.id, n: item.n, q: item.q, c: item.c, u: item.u, d: item.d } })
+    }
   }
 
   function softDeleteItem (listId: string, itemId: string) {
