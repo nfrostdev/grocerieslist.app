@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setMeta } from '@/sync/storage'
-
-vi.mock('@/sync/poll', () => ({ startPoller: vi.fn() }))
-
 import { isSynced, startPolling } from '@/sync'
 import { startPoller } from '@/sync/poll'
+
+vi.mock('@/sync/poll', () => ({ startPoller: vi.fn() }))
 
 describe('sync/index', () => {
   beforeEach(() => {
