@@ -9,10 +9,10 @@ export default defineConfig({
     trace: 'on-first-retry'
   },
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173',
+    command: 'npm run build && npx wrangler d1 execute grocerieslist-sync --local --file=schema.sql && npx wrangler pages dev dist --port 4173 --show-interactive-dev-session false',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000
+    timeout: 180_000
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium', reducedMotion: 'reduce' } }]
 })

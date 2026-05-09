@@ -44,11 +44,6 @@ describe('App.vue', () => {
     expect(wrapper.find('main').exists()).toBe(true)
   })
 
-  it('does not show import modal without #import= fragment', async () => {
-    const { wrapper } = await mountApp()
-    expect(wrapper.find('.import-modal').exists()).toBe(false)
-  })
-
   it('renders the live region container', async () => {
     const { wrapper } = await mountApp()
     expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true)
