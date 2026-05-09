@@ -128,8 +128,8 @@ const router = useRouter()
 const listsStore = useListsStore()
 const { announce } = useLiveRegion()
 
-const listId = route.params.id as string
-const list = computed(() => listsStore.getListFromId(listId))
+const listId = computed(() => route.params.id as string)
+const list = computed(() => listsStore.getListFromId(listId.value))
 const name = ref<string | null>(null)
 const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
@@ -157,7 +157,7 @@ function onListDeleted () {
 
 function addItemToList (): void {
   const addedName = name.value!
-  listsStore.addItem(listId, new Item(addedName, String(quantity.value)))
+  listsStore.addItem(listId.value, new Item(addedName, String(quantity.value)))
   name.value = null
   quantity.value = 1
   announce(`${addedName} added`)
@@ -168,7 +168,7 @@ function modifyItemQuantity (event: Event, id: string): void {
   const input = event.target as HTMLInputElement
   const item = list.value!.i.find(i => i.id === id)!
   if (input.value && !isNaN(Number(input.value))) {
-    listsStore.updateItem(listId, id, { q: input.value })
+    listsStore.updateItem(listId.value, id, { q: input.value })
   } else {
     input.value = item.q
   }
@@ -177,7 +177,7 @@ function modifyItemQuantity (event: Event, id: string): void {
 function modifyItemName (event: Event, id: string): void {
   const input = event.target as HTMLInputElement
   if (input.value) {
-    listsStore.updateItem(listId, id, { n: input.value })
+    listsStore.updateItem(listId.value, id, { n: input.value })
   }
 }
 
@@ -185,7 +185,7 @@ async function deleteItem (id: string): Promise<void> {
   const item = list.value!.i.find(i => i.id === id)
   if (!item) return
   const deletedName = item.n
-  listsStore.softDeleteItem(listId, id)
+  listsStore.softDeleteItem(listId.value, id)
   announce(`${deletedName} removed`)
   await nextTick()
   const nextInput = document.querySelector<HTMLInputElement>('.item__name')
@@ -200,7 +200,7 @@ function toggleItemCheckedStatus (id: string): void {
   const item = list.value!.i.find(i => i.id === id)
   if (!item) return
   const next = item.c === 0 ? 1 : 0
-  listsStore.updateItem(listId, id, { c: next })
+  listsStore.updateItem(listId.value, id, { c: next })
   announce(`${item.n} ${next === 1 ? 'checked' : 'unchecked'}`)
 }
 
