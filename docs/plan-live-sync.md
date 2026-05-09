@@ -1,6 +1,6 @@
 # Live Sync MVP — Implementation Plan
 
-**Status:** Drafted 2026-05-08. Not yet started.
+**Status:** M1 complete 2026-05-08. M2 complete 2026-05-08. M3 complete 2026-05-09.
 **Replaces:** Existing QR snapshot share (`src/utils/share.ts`, `src/components/ImportModal.vue`, pako encoding). Those go away in M4.
 
 ## 1. Goal
@@ -288,15 +288,11 @@ Editors don't see this panel.
 
 These were flagged during planning and should be re-resolved before M3:
 
-### 7.1 List-level mutation details (Q9 revisit)
+### 7.1 List-level mutation details (Q9 — resolved in M3)
 
-Specifically the tombstone retention strategy and whether list-level fields beyond `name` (e.g., a hypothetical `archived` flag) are in scope. Current plan assumes:
-
-- Tombstones retained forever in MVP. GC deferred until a list demonstrably crosses a size threshold.
+- Tombstones auto-GC'd after 30 days on write (`DELETE FROM items WHERE list_id=? AND d=1 AND u<?`). No cron needed.
 - Hard delete on owner action; recipients learn via 404 next poll.
-- 401 vs 404 status differentiation for "revoked" vs "deleted/missing."
-
-Revisit before M3.
+- 401 → "Access revoked" toast + local removal. 404 → "List deleted" toast + local removal.
 
 ### 7.2 Token reuse semantics edge cases
 

@@ -1,10 +1,11 @@
 import type List from '@/classes/List'
 import { useListsStore } from '@/stores/lists'
-import { provisionList, joinList } from './transport'
+import { provisionList, joinList, mintToken, revokeToken, deleteListRequest } from './transport'
 import { applyJoinPayload } from './reconcile'
-import { getMeta, setMeta, getSyncMetaMap } from './storage'
-import { startPoller } from './poll'
+import { getMeta, setMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
+import { startPoller, stopPoller } from './poll'
 import { startDrainer } from './queue'
+import { cleanupListLocally } from './cleanup'
 
 export { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
 export { enqueue } from './queue'
@@ -51,4 +52,55 @@ export function startPolling (): void {
     startPoller(listId)
   }
   startDrainer()
+}
+
+export async function enableSharing (listId: string): Promise<string | null> {
+  const meta = getMeta(listId)
+  if (!meta || meta.role !== 'owner') return null
+
+  if (meta.shareToken) {
+    return `${window.location.origin}/#join=${listId}.${meta.shareToken}`
+  }
+
+  const result = await mintToken(listId, meta.authToken)
+  if (!result.ok) return null
+
+  const { token } = result.data
+  const map = getSyncMetaMap()
+  const entry = map[listId]
+  if (entry) {
+    entry.shareToken = token
+    saveSyncMetaMap(map)
+  }
+
+  return `${window.location.origin}/#join=${listId}.${token}`
+}
+
+export async function disableSharing (listId: string): Promise<boolean> {
+  const meta = getMeta(listId)
+  if (!meta || meta.role !== 'owner') return false
+
+  const result = await revokeToken(listId, meta.authToken)
+  if (!result.ok) return false
+
+  const map = getSyncMetaMap()
+  const entry = map[listId]
+  if (entry) {
+    delete entry.shareToken
+    saveSyncMetaMap(map)
+  }
+
+  return true
+}
+
+export async function deleteList (listId: string): Promise<boolean> {
+  const meta = getMeta(listId)
+  if (!meta || meta.role !== 'owner') return false
+
+  const result = await deleteListRequest(listId, meta.authToken)
+  if (!result.ok) return false
+
+  stopPoller(listId)
+  cleanupListLocally(listId)
+  return true
 }

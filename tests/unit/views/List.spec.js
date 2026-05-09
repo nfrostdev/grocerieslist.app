@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -11,6 +11,11 @@ const makeItem = (overrides = {}) => ({
   id: 'item1', n: 'Apples', q: 2, c: 0, d: 0, u: 0, ...overrides
 })
 
+const routes = [
+  { path: '/list/:id', name: 'List', component: { template: '<div/>' } },
+  { path: '/lists', name: 'Lists', component: { template: '<div/>' } }
+]
+
 const mountList = async (items = [makeItem()]) => {
   const pinia = createPinia()
 
@@ -21,10 +26,7 @@ const mountList = async (items = [makeItem()]) => {
     }
   }
 
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [{ path: '/list/:id', name: 'List', component: { template: '<div/>' } }]
-  })
+  const router = createRouter({ history: createMemoryHistory(), routes })
   await router.push({ name: 'List', params: { id: listId } })
 
   const wrapper = mount(ListV, {
@@ -36,7 +38,36 @@ const mountList = async (items = [makeItem()]) => {
 
   await nextTick()
   const store = useListsStore(pinia)
-  return { wrapper, store }
+  return { wrapper, store, router }
+}
+
+// Mounts with a controllable ShareSheet stub so we can drive its events.
+const mountListWithSheet = async () => {
+  const pinia = createPinia()
+  const seeder = {
+    install () {
+      useListsStore(pinia).$patch({ lists: [{ id: 'local01', n: 'Groceries', i: [] }] })
+    }
+  }
+  const router = createRouter({ history: createMemoryHistory(), routes })
+  await router.push({ name: 'List', params: { id: 'local01' } })
+
+  let sheetEmit = null
+  const ShareSheetStub = {
+    props: ['open', 'list'],
+    emits: ['update:open', 'provisioned', 'deleted'],
+    setup (_, { emit }) { sheetEmit = emit; return () => null }
+  }
+
+  const wrapper = mount(ListV, {
+    global: {
+      plugins: [pinia, seeder, router],
+      stubs: { FontAwesomeIcon: { template: '<span/>' }, ShareSheet: ShareSheetStub }
+    }
+  })
+  await nextTick()
+  const store = useListsStore(pinia)
+  return { wrapper, store, router, sheetEmit: () => sheetEmit }
 }
 
 describe('List.vue', () => {
@@ -101,5 +132,41 @@ describe('List.vue', () => {
   it('shows the all-checked banner when every active item is checked', async () => {
     const { wrapper } = await mountList([makeItem({ c: 1 })])
     expect(wrapper.text()).toContain('checked off all your items')
+  })
+
+  describe('navigation guard', () => {
+    it('does NOT navigate to Lists when the share button is clicked', async () => {
+      const { wrapper, router } = await mountListWithSheet()
+      await wrapper.find('.list-header__share').trigger('click')
+      await nextTick()
+      expect(router.currentRoute.value.name).toBe('List')
+    })
+
+    it('does NOT navigate to Lists when the share sheet closes after provision', async () => {
+      const { wrapper, store, router, sheetEmit } = await mountListWithSheet()
+
+      // Open share sheet
+      await wrapper.find('.list-header__share').trigger('click')
+      await nextTick()
+
+      // Simulate provision: list ID renamed in store (as sync.provision does)
+      store.updateListId('local01', 'SERVER01')
+      await nextTick()
+
+      // Simulate ShareSheet emitting provisioned then closing (as onClose does)
+      sheetEmit()('provisioned', 'SERVER01')
+      sheetEmit()('update:open', false)
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('List')
+      expect(router.currentRoute.value.params.id).toBe('SERVER01')
+    })
+
+    it('navigates to Lists when the list disappears without a provision (access revoked)', async () => {
+      const { store, router } = await mountList([])
+      store.$patch({ lists: [] })
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('Lists')
+    })
   })
 })

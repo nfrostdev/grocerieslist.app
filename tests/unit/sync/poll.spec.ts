@@ -11,6 +11,9 @@ vi.mock('@/sync/storage', () => ({
   getSyncMetaMap: vi.fn(() => ({})),
   saveSyncMetaMap: vi.fn()
 }))
+vi.mock('@/sync/cleanup', () => ({ cleanupListLocally: vi.fn() }))
+vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn(() => ({ getListFromId: vi.fn(() => ({ n: 'Test List' })) })) }))
+vi.mock('@/stores/toast', () => ({ useToastStore: vi.fn(() => ({ add: vi.fn() })) }))
 
 const mGetMeta = vi.mocked(getMeta)
 const mPollList = vi.mocked(pollList)

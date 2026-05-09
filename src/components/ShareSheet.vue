@@ -16,53 +16,95 @@
         </button>
       </div>
 
-      <div v-if="state === 'loading'" class="share-sheet__loading">Setting up shared list…</div>
+      <div v-if="state === 'loading'" class="share-sheet__loading">Setting up…</div>
 
-      <div v-else-if="state === 'error'" class="share-sheet__too-large">
+      <div v-else-if="state === 'error'" class="share-sheet__error">
         Could not create shared list. Check your connection and try again.
       </div>
 
-      <div v-else-if="state === 'ready'" class="share-sheet__qr" v-html="qrSvg"/>
+      <template v-else-if="state === 'sharing'">
+        <div class="share-sheet__qr" v-html="qrSvg"/>
+        <div class="share-sheet__actions">
+          <button v-if="canWebShare"
+                  type="button"
+                  class="share-sheet__button share-sheet__button--primary"
+                  @click="onShare">
+            Share link…
+          </button>
+          <button type="button"
+                  class="share-sheet__button"
+                  @click="onCopy">
+            {{ copied ? 'Copied!' : 'Copy link' }}
+          </button>
+          <button v-if="isOwner"
+                  type="button"
+                  class="share-sheet__button share-sheet__button--secondary"
+                  :disabled="stopping"
+                  @click="onStopSharing">
+            {{ stopping ? 'Revoking…' : 'Stop sharing' }}
+          </button>
+        </div>
+      </template>
 
-      <div v-if="state === 'ready'" class="share-sheet__actions">
-        <button v-if="canWebShare"
-                type="button"
-                class="share-sheet__button share-sheet__button--primary"
-                @click="onShare">
-          Share link…
-        </button>
+      <template v-else-if="state === 'not-sharing'">
+        <p class="share-sheet__hint">Sharing is off. Enable it to let others join with a link.</p>
+        <div class="share-sheet__actions">
+          <button type="button"
+                  class="share-sheet__button share-sheet__button--primary"
+                  :disabled="enabling"
+                  @click="onEnableSharing">
+            {{ enabling ? 'Generating…' : 'Enable sharing' }}
+          </button>
+        </div>
+      </template>
+
+      <div v-if="isOwner && state !== 'loading'" class="share-sheet__danger-zone">
         <button type="button"
-                class="share-sheet__button"
-                @click="onCopy">
-          {{ copied ? 'Copied!' : 'Copy link' }}
+                class="share-sheet__button share-sheet__button--destructive"
+                @click="confirmDelete">
+          Delete shared list…
         </button>
       </div>
     </div>
   </dialog>
+
+  <confirm-modal v-model:open="confirmOpen"
+                 title="Delete shared list"
+                 :message="`Delete &quot;${list.n}&quot;? All devices will lose access and the list will be removed everywhere.`"
+                 variant="destructive"
+                 confirm-label="Delete"
+                 @confirm="onDeleteConfirmed"/>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type List from '@/classes/List'
 import { useLiveRegion } from '@/composables/useLiveRegion'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import * as sync from '@/sync'
 
 const props = defineProps<{ open: boolean; list: List }>()
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'provisioned', listId: string): void
+  (e: 'deleted'): void
 }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const state = ref<'loading' | 'ready' | 'error'>('loading')
+const state = ref<'loading' | 'sharing' | 'not-sharing' | 'error'>('loading')
 const qrSvg = ref('')
 const joinUrl = ref('')
 const copied = ref(false)
+const stopping = ref(false)
+const enabling = ref(false)
+const confirmOpen = ref(false)
 const canWebShare = ref(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
 const { announce } = useLiveRegion()
 
 let copyTimer: ReturnType<typeof setTimeout> | null = null
 let provisionedListId: string | null = null
+
+const isOwner = computed(() => sync.getMeta(props.list.id)?.role === 'owner')
 
 async function build () {
   state.value = 'loading'
@@ -72,28 +114,71 @@ async function build () {
 
   const capturedList = props.list
 
-  if (sync.isSynced(capturedList.id)) {
-    const meta = sync.getMeta(capturedList.id)!
-    joinUrl.value = `${window.location.origin}/#join=${capturedList.id}.${meta.authToken}`
-    provisionedListId = null
-  } else {
+  if (!sync.isSynced(capturedList.id)) {
     const result = await sync.provision(capturedList)
     if (!result) {
       state.value = 'error'
       return
     }
-    joinUrl.value = result.joinUrl
     provisionedListId = result.listId
+    // Auto-enable sharing immediately after provisioning
+    const url = await sync.enableSharing(capturedList.id)
+    if (url) await showShareLink(url)
+    else state.value = 'error'
+    return
   }
 
+  provisionedListId = null
+  const meta = sync.getMeta(capturedList.id)
+
+  if (meta?.role === 'owner') {
+    if (meta.shareToken) {
+      await showShareLink(`${window.location.origin}/#join=${capturedList.id}.${meta.shareToken}`)
+    } else {
+      state.value = 'not-sharing'
+    }
+  } else {
+    // Editor: show their own join link
+    const token = meta?.authToken ?? ''
+    await showShareLink(`${window.location.origin}/#join=${capturedList.id}.${token}`)
+  }
+}
+
+async function showShareLink (url: string) {
+  joinUrl.value = url
   const qrcodeMod = await import('qrcode')
   const QRCode = qrcodeMod.default ?? qrcodeMod
-  qrSvg.value = await QRCode.toString(joinUrl.value, {
+  qrSvg.value = await QRCode.toString(url, {
     type: 'svg',
     margin: 1,
     color: { dark: '#111827', light: '#ffffff' }
   })
-  state.value = 'ready'
+  state.value = 'sharing'
+}
+
+async function onEnableSharing () {
+  enabling.value = true
+  const url = await sync.enableSharing(props.list.id)
+  enabling.value = false
+  if (!url) {
+    announce('Could not enable sharing — check your connection')
+    return
+  }
+  await showShareLink(url)
+}
+
+async function onStopSharing () {
+  stopping.value = true
+  const ok = await sync.disableSharing(props.list.id)
+  stopping.value = false
+  if (!ok) {
+    announce('Could not stop sharing — check your connection')
+    return
+  }
+  qrSvg.value = ''
+  joinUrl.value = ''
+  state.value = 'not-sharing'
+  announce('Sharing stopped — existing links no longer work')
 }
 
 function close () {
@@ -135,6 +220,20 @@ async function onCopy () {
     copyTimer = setTimeout(() => { copied.value = false }, 2000)
   } catch {
     announce('Could not copy link')
+  }
+}
+
+function confirmDelete () {
+  confirmOpen.value = true
+}
+
+async function onDeleteConfirmed () {
+  const ok = await sync.deleteList(props.list.id)
+  if (ok) {
+    close()
+    emit('deleted')
+  } else {
+    announce('Could not delete — check your connection')
   }
 }
 
@@ -191,12 +290,16 @@ onUnmounted(() => {
   }
 
   &__loading,
-  &__too-large {
+  &__hint {
     @apply text-center py-8 text-sm;
   }
 
-  &__too-large {
-    @apply bg-blue-50 rounded p-4 text-gl-darkblue;
+  &__hint {
+    @apply py-4 text-gray-500 dark:text-gray-400;
+  }
+
+  &__error {
+    @apply bg-blue-50 rounded p-4 text-gl-darkblue text-sm;
     @apply dark:bg-gl-deep-blue/50 dark:text-white;
   }
 
@@ -210,6 +313,11 @@ onUnmounted(() => {
 
   &__actions {
     @apply mt-4 grid gap-2;
+  }
+
+  &__danger-zone {
+    @apply mt-4 pt-4 border-t border-gl-gray;
+    @apply dark:border-gl-deep-blue;
   }
 
   &__button {
@@ -232,6 +340,20 @@ onUnmounted(() => {
       &:hover, &:focus {
         @apply bg-green-300 ring-4 ring-gl-lightgreen/50 border-gl-green;
         @apply dark:bg-green-800 dark:ring-gl-green/30 dark:border-gl-lightgreen;
+      }
+    }
+
+    &--secondary {
+      @apply text-gray-600 dark:text-gray-300;
+    }
+
+    &--destructive {
+      @apply bg-red-600 border-red-700 text-white;
+      @apply dark:bg-red-700 dark:border-red-800;
+
+      &:hover, &:focus {
+        @apply bg-red-700 ring-4 ring-red-400/50 border-red-700;
+        @apply dark:bg-red-800 dark:ring-red-500/30 dark:border-red-800;
       }
     }
   }

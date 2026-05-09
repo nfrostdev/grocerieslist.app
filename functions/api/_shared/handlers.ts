@@ -2,6 +2,8 @@ import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken } from './ulid'
 import { hashToken, authenticate } from './auth'
 
+const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
+
 export async function handleUpsertItem (
   db: D1Database,
   request: Request,
@@ -46,6 +48,7 @@ export async function handleUpsertItem (
        SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
     ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d),
     db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId),
+    db.prepare('DELETE FROM items WHERE list_id = ? AND d = 1 AND u < ?').bind(listId, Date.now() - TOMBSTONE_TTL_MS),
   ])
 
   return Response.json({ item: incoming })
@@ -196,4 +199,64 @@ export async function handleJoin (
     version: list.version,
     items,
   })
+}
+
+export async function handleMintToken (
+  db: D1Database,
+  request: Request,
+  listId: string
+): Promise<Response> {
+  const auth = await authenticate(db, request, listId)
+  if (auth instanceof Response) return auth
+  if ((auth as TokenRow).role !== 'owner') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const authToken = generateToken()
+  const tokenHash = await hashToken(authToken)
+  const now = Date.now()
+
+  await db.prepare(
+    'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
+  ).bind(tokenHash, listId, 'editor', now).run()
+
+  return Response.json({ token: authToken })
+}
+
+export async function handleRevokeToken (
+  db: D1Database,
+  request: Request,
+  listId: string
+): Promise<Response> {
+  const auth = await authenticate(db, request, listId)
+  if (auth instanceof Response) return auth
+  if ((auth as TokenRow).role !== 'owner') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  await db.prepare(
+    'UPDATE list_tokens SET revoked_at = ? WHERE list_id = ? AND role = ?'
+  ).bind(Date.now(), listId, 'editor').run()
+
+  return Response.json({})
+}
+
+export async function handleDeleteList (
+  db: D1Database,
+  request: Request,
+  listId: string
+): Promise<Response> {
+  const auth = await authenticate(db, request, listId)
+  if (auth instanceof Response) return auth
+  if ((auth as TokenRow).role !== 'owner') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  await db.batch([
+    db.prepare('DELETE FROM items WHERE list_id = ?').bind(listId),
+    db.prepare('DELETE FROM list_tokens WHERE list_id = ?').bind(listId),
+    db.prepare('DELETE FROM lists WHERE id = ?').bind(listId),
+  ])
+
+  return Response.json({})
 }

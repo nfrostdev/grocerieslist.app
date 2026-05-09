@@ -1,4 +1,4 @@
-import type { TransportResult, ProvisionResponse, JoinResponse, PollPayload, ItemPayload, UpsertItemResponse, PatchListResponse } from './types'
+import type { TransportResult, ProvisionResponse, JoinResponse, PollPayload, ItemPayload, UpsertItemResponse, PatchListResponse, MintTokenResponse } from './types'
 
 function normError (status: number) {
   if (status === 401) return { kind: 'unauthorized' as const }
@@ -95,6 +95,54 @@ export async function patchList (
     })
     if (!res.ok) return { ok: false, error: normError(res.status) }
     return { ok: true, data: await res.json() as PatchListResponse }
+  } catch {
+    return { ok: false, error: { kind: 'network' } }
+  }
+}
+
+export async function mintToken (
+  listId: string,
+  authToken: string
+): Promise<TransportResult<MintTokenResponse>> {
+  try {
+    const res = await fetch(`/api/lists/${listId}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    if (!res.ok) return { ok: false, error: normError(res.status) }
+    return { ok: true, data: await res.json() as MintTokenResponse }
+  } catch {
+    return { ok: false, error: { kind: 'network' } }
+  }
+}
+
+export async function revokeToken (
+  listId: string,
+  authToken: string
+): Promise<TransportResult<Record<string, never>>> {
+  try {
+    const res = await fetch(`/api/lists/${listId}/tokens/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    if (!res.ok) return { ok: false, error: normError(res.status) }
+    return { ok: true, data: {} as Record<string, never> }
+  } catch {
+    return { ok: false, error: { kind: 'network' } }
+  }
+}
+
+export async function deleteListRequest (
+  listId: string,
+  authToken: string
+): Promise<TransportResult<Record<string, never>>> {
+  try {
+    const res = await fetch(`/api/lists/${listId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    if (!res.ok) return { ok: false, error: normError(res.status) }
+    return { ok: true, data: {} as Record<string, never> }
   } catch {
     return { ok: false, error: { kind: 'network' } }
   }

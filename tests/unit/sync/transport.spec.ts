@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { provisionList, joinList, pollList } from '@/sync/transport'
+import { provisionList, joinList, pollList, mintToken, revokeToken, deleteListRequest } from '@/sync/transport'
 
 const mockFetch = (ok: boolean, status: number, data: unknown) =>
   vi.fn().mockResolvedValue({ ok, status, json: () => Promise.resolve(data) })
@@ -81,6 +81,58 @@ describe('sync/transport', () => {
     it('returns network error when fetch throws', async () => {
       vi.stubGlobal('fetch', mockNetworkError())
       expect(await pollList('abc', 'tok', 0)).toEqual({ ok: false, error: { kind: 'network' } })
+    })
+  })
+
+  describe('mintToken', () => {
+    it('returns token on 200', async () => {
+      vi.stubGlobal('fetch', mockFetch(true, 200, { token: 'new-tok' }))
+      expect(await mintToken('list1', 'owner-tok')).toEqual({ ok: true, data: { token: 'new-tok' } })
+    })
+
+    it('returns unauthorized on 403', async () => {
+      vi.stubGlobal('fetch', mockFetch(false, 403, {}))
+      expect(await mintToken('list1', 'editor-tok')).toEqual({ ok: false, error: { kind: 'server', status: 403 } })
+    })
+
+    it('returns network error when fetch throws', async () => {
+      vi.stubGlobal('fetch', mockNetworkError())
+      expect(await mintToken('list1', 'tok')).toEqual({ ok: false, error: { kind: 'network' } })
+    })
+  })
+
+  describe('revokeToken', () => {
+    it('returns ok on 200', async () => {
+      vi.stubGlobal('fetch', mockFetch(true, 200, {}))
+      const result = await revokeToken('list1', 'owner-tok')
+      expect(result.ok).toBe(true)
+    })
+
+    it('returns unauthorized on 401', async () => {
+      vi.stubGlobal('fetch', mockFetch(false, 401, {}))
+      expect(await revokeToken('list1', 'bad')).toEqual({ ok: false, error: { kind: 'unauthorized' } })
+    })
+
+    it('returns network error when fetch throws', async () => {
+      vi.stubGlobal('fetch', mockNetworkError())
+      expect(await revokeToken('list1', 'tok')).toEqual({ ok: false, error: { kind: 'network' } })
+    })
+  })
+
+  describe('deleteListRequest', () => {
+    it('returns ok on 200', async () => {
+      vi.stubGlobal('fetch', mockFetch(true, 200, {}))
+      expect((await deleteListRequest('list1', 'tok')).ok).toBe(true)
+    })
+
+    it('returns unauthorized on 401', async () => {
+      vi.stubGlobal('fetch', mockFetch(false, 401, {}))
+      expect(await deleteListRequest('list1', 'bad')).toEqual({ ok: false, error: { kind: 'unauthorized' } })
+    })
+
+    it('returns network error when fetch throws', async () => {
+      vi.stubGlobal('fetch', mockNetworkError())
+      expect(await deleteListRequest('list1', 'tok')).toEqual({ ok: false, error: { kind: 'network' } })
     })
   })
 })

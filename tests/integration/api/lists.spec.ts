@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { Miniflare } from 'miniflare'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { handleProvision, handleJoin, handlePoll, handleUpsertItem, handlePatchList } from '../../../functions/api/_shared/handlers'
+import { handleProvision, handleJoin, handlePoll, handleUpsertItem, handlePatchList, handleMintToken, handleRevokeToken, handleDeleteList } from '../../../functions/api/_shared/handlers'
 
 const schema = readFileSync(resolve(__dirname, '../../../schema.sql'), 'utf-8')
 
@@ -404,5 +404,183 @@ describe('PATCH /api/lists/:id', () => {
       body: JSON.stringify({ name: 'Hacked', u: 9999 })
     }), id)
     expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/lists/:id/tokens (mint editor token)
+// ---------------------------------------------------------------------------
+
+describe('POST /api/lists/:id/tokens', () => {
+  async function setup () {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Token Test', items: [] })
+    })
+    return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
+  }
+
+  function mintReq (listId: string, token: string) {
+    return new Request(`http://localhost/api/lists/${listId}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+  }
+
+  it('mints a new editor token for the owner', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleMintToken(db, mintReq(id, authToken), id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { token: string }
+    expect(typeof body.token).toBe('string')
+    expect(body.token.length).toBeGreaterThan(30)
+  })
+
+  it('minted token is valid for polling', async () => {
+    const { id, authToken } = await setup()
+    const { token: editorToken } = await handleMintToken(db, mintReq(id, authToken), id)
+      .then(r => r.json() as Promise<{ token: string }>)
+
+    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${editorToken}` }
+    })
+    const res = await handlePoll(db, pollReq, id)
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 401 without auth', async () => {
+    const { id } = await setup()
+    const res = await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, { method: 'POST' }), id)
+    expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/lists/:id/tokens/revoke
+// ---------------------------------------------------------------------------
+
+describe('POST /api/lists/:id/tokens/revoke', () => {
+  async function setup () {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Revoke Test', items: [] })
+    })
+    return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
+  }
+
+  function revokeReq (listId: string, token: string) {
+    return new Request(`http://localhost/api/lists/${listId}/tokens/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+  }
+
+  it('revokes all editor tokens for the list', async () => {
+    const { id, authToken } = await setup()
+    const { token: editorToken } = await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id).then(r => r.json() as Promise<{ token: string }>)
+
+    const res = await handleRevokeToken(db, revokeReq(id, authToken), id)
+    expect(res.status).toBe(200)
+
+    const pollRes = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${editorToken}` }
+    }), id)
+    expect(pollRes.status).toBe(401)
+  })
+
+  it('owner token remains valid after revoking editors', async () => {
+    const { id, authToken } = await setup()
+    await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id)
+
+    await handleRevokeToken(db, revokeReq(id, authToken), id)
+
+    const pollRes = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id)
+    expect(pollRes.status).toBe(200)
+  })
+
+  it('returns 401 without auth', async () => {
+    const { id } = await setup()
+    const res = await handleRevokeToken(db, new Request(`http://localhost/api/lists/${id}/tokens/revoke`, {
+      method: 'POST'
+    }), id)
+    expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// DELETE /api/lists/:id
+// ---------------------------------------------------------------------------
+
+describe('DELETE /api/lists/:id', () => {
+  async function setup () {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Delete Test',
+        items: [{ id: 'item0001', n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }]
+      })
+    })
+    return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
+  }
+
+  function deleteReq (listId: string, token: string) {
+    return new Request(`http://localhost/api/lists/${listId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+  }
+
+  it('deletes list and cascades to items and tokens', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleDeleteList(db, deleteReq(id, authToken), id)
+    expect(res.status).toBe(200)
+
+    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const pollRes = await handlePoll(db, pollReq, id)
+    expect(pollRes.status).toBe(401) // token gone, can't auth
+  })
+
+  it('returns 401 without auth', async () => {
+    const { id } = await setup()
+    const res = await handleDeleteList(db, new Request(`http://localhost/api/lists/${id}`, { method: 'DELETE' }), id)
+    expect(res.status).toBe(401)
+  })
+
+  it('tombstone GC — removes d=1 items older than 30 days on write', async () => {
+    const { id, authToken } = await setup()
+    const ninetyOneDaysAgo = Date.now() - 91 * 24 * 60 * 60 * 1000
+
+    const upsertReq = (itemId: string, item: object) => new Request(`http://localhost/api/lists/${id}/items/${itemId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify(item)
+    })
+
+    // Insert old tombstone
+    await handleUpsertItem(db, upsertReq('tombstone1', { n: 'Old Item', q: '1', c: 0, u: ninetyOneDaysAgo, d: 1 }), id, 'tombstone1')
+    // Write a new item to trigger GC
+    await handleUpsertItem(db, upsertReq('item0002', { n: 'New Item', q: '2', c: 0, u: Date.now(), d: 0 }), id, 'item0002')
+
+    // Poll — old tombstone should be gone
+    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const body = await handlePoll(db, pollReq, id).then(r => r.json() as Promise<{ items: Array<{ id: string }> }>)
+    const ids = body.items.map(i => i.id)
+    expect(ids).not.toContain('tombstone1')
+    expect(ids).toContain('item0002')
   })
 })
