@@ -1,0 +1,84 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+
+vi.mock('@/sync/transport', () => ({
+  provisionList: vi.fn(),
+  joinList: vi.fn()
+}))
+vi.mock('@/sync/poll', () => ({ startPoller: vi.fn() }))
+vi.mock('@/sync/reconcile', () => ({ applyJoinPayload: vi.fn() }))
+
+import { provision, join } from '@/sync'
+import { provisionList, joinList } from '@/sync/transport'
+import { startPoller } from '@/sync/poll'
+import { applyJoinPayload } from '@/sync/reconcile'
+import { getMeta } from '@/sync/storage'
+import { useListsStore } from '@/stores/lists'
+
+describe('sync/index — provision', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.resetAllMocks()
+  })
+
+  it('returns null when provisionList fails', async () => {
+    provisionList.mockResolvedValue({ ok: false, error: { kind: 'network' } })
+    const result = await provision({ id: 'loc1', n: 'Test', i: [] })
+    expect(result).toBeNull()
+    expect(startPoller).not.toHaveBeenCalled()
+  })
+
+  it('renames list id, saves meta, starts poller, and returns joinUrl + listId', async () => {
+    provisionList.mockResolvedValue({ ok: true, data: { id: 'srv1', authToken: 'tok1' } })
+    const store = useListsStore()
+    store.$patch({ lists: [{ id: 'loc1', n: 'Groceries', i: [] }] })
+
+    const result = await provision({ id: 'loc1', n: 'Groceries', i: [] })
+
+    expect(result?.listId).toBe('srv1')
+    expect(result?.joinUrl).toContain('#join=srv1.tok1')
+    expect(getMeta('srv1')).toEqual({ authToken: 'tok1', role: 'owner', lastVersion: 1 })
+    expect(startPoller).toHaveBeenCalledWith('srv1')
+    expect(store.lists[0].id).toBe('srv1')
+  })
+
+  it('sends only non-deleted items to provisionList', async () => {
+    provisionList.mockResolvedValue({ ok: true, data: { id: 'srv2', authToken: 't2' } })
+    const list = {
+      id: 'loc2', n: 'List', i: [
+        { id: 'i1', n: 'Bread', q: '1', c: 0, u: 1, d: 0 },
+        { id: 'i2', n: 'Milk', q: '1', c: 0, u: 1, d: 1 }
+      ]
+    }
+    useListsStore().$patch({ lists: [list] })
+    await provision(list)
+    const sentItems = provisionList.mock.calls[0][1]
+    expect(sentItems).toHaveLength(1)
+    expect(sentItems[0].id).toBe('i1')
+  })
+})
+
+describe('sync/index — join', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.resetAllMocks()
+  })
+
+  it('returns false when joinList fails', async () => {
+    joinList.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
+    expect(await join('list1', 'bad')).toBe(false)
+    expect(startPoller).not.toHaveBeenCalled()
+  })
+
+  it('applies payload, saves meta, starts poller, and returns true', async () => {
+    const data = { listId: 'list2', role: 'editor', name: 'Shared', version: 3, items: [] }
+    joinList.mockResolvedValue({ ok: true, data })
+
+    expect(await join('list2', 'tok2')).toBe(true)
+    expect(applyJoinPayload).toHaveBeenCalledWith(data)
+    expect(getMeta('list2')).toEqual({ authToken: 'tok2', role: 'editor', lastVersion: 3 })
+    expect(startPoller).toHaveBeenCalledWith('list2')
+  })
+})
