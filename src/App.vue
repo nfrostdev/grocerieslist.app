@@ -21,12 +21,14 @@ import AppHeader from '@/components/AppHeader.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
+import { useTheme } from '@/composables/useTheme'
 import * as sync from '@/sync'
 
 const router = useRouter()
 const listsStore = useListsStore()
 const loaded = ref(false)
 const { message: liveMessage, announce } = useLiveRegion()
+const { init: initTheme } = useTheme()
 
 async function handleJoinFragment () {
   const m = /^#join=([^.]+)\.(.+)$/.exec(window.location.hash)
@@ -49,6 +51,7 @@ async function handleJoinFragment () {
 }
 
 onMounted(async () => {
+  initTheme()
   listsStore.init()
   loaded.value = true
   sync.startPolling()
