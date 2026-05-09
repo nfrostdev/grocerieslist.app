@@ -31,7 +31,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**'],
-      exclude: ['src/main.ts', 'src/router/**'],
+      exclude: ['src/main.ts', 'src/router/**', 'src/**/*.d.ts', 'src/assets/**', 'src/sync/types.ts'],
       thresholds: {
         lines: 80,
         functions: 80,
