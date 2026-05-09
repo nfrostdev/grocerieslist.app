@@ -569,7 +569,7 @@ describe('DELETE /api/lists/:id', () => {
 
   it('tombstone GC — removes d=1 items older than 30 days on write', async () => {
     const { id, authToken } = await setup()
-    const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000
+    const ninetyOneDaysAgo = Date.now() - 91 * 24 * 60 * 60 * 1000
 
     const upsertReq = (itemId: string, item: object) => new Request(`http://localhost/api/lists/${id}/items/${itemId}`, {
       method: 'POST',
@@ -578,7 +578,7 @@ describe('DELETE /api/lists/:id', () => {
     })
 
     // Insert old tombstone
-    await handleUpsertItem(db, upsertReq('tombstone1', { n: 'Old Item', q: '1', c: 0, u: thirtyOneDaysAgo, d: 1 }), id, 'tombstone1')
+    await handleUpsertItem(db, upsertReq('tombstone1', { n: 'Old Item', q: '1', c: 0, u: ninetyOneDaysAgo, d: 1 }), id, 'tombstone1')
     // Write a new item to trigger GC
     await handleUpsertItem(db, upsertReq('item0002', { n: 'New Item', q: '2', c: 0, u: Date.now(), d: 0 }), id, 'item0002')
 

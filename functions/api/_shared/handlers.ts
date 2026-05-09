@@ -2,7 +2,7 @@ import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken } from './ulid'
 import { hashToken, authenticate } from './auth'
 
-const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
 export async function handleUpsertItem (
   db: D1Database,
