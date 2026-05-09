@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, onMounted, nextTick } from 'vue'
+import { computed, ref, shallowRef, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Item from '@/classes/Item'
 import { useListsStore } from '@/stores/lists'
@@ -135,6 +135,10 @@ const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
 const shareOpen = ref(false)
 const shareList = shallowRef<List | null>(null)
+
+watch(list, (current) => {
+  if (!current) router.replace({ name: 'Lists' })
+})
 
 function openShare () {
   if (list.value) {
