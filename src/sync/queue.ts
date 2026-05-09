@@ -46,7 +46,6 @@ function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-
 async function flush (): Promise<void> {
   while (true) {
     const q = loadQueue()
