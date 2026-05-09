@@ -91,4 +91,3 @@ test('a11y: Lists route — after creating a list', async ({ page }) => {
   await expect(page.getByRole('link', { name: /A11y Test/ })).toBeVisible()
   await checkA11y(page)
 })
-
