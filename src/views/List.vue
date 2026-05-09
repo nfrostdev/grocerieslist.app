@@ -135,9 +135,10 @@ const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
 const shareOpen = ref(false)
 const shareList = shallowRef<List | null>(null)
+const provisioning = ref(false)
 
-watch([list, shareOpen], ([currentList, isOpen]) => {
-  if (!currentList && !isOpen) router.replace({ name: 'Lists' })
+watch([list, shareOpen, provisioning], ([currentList, isOpen, isProvisioning]) => {
+  if (!currentList && !isOpen && !isProvisioning) router.replace({ name: 'Lists' })
 })
 
 function openShare () {
@@ -148,7 +149,10 @@ function openShare () {
 }
 
 function onProvisioned (newListId: string) {
-  router.replace({ name: 'List', params: { id: newListId } })
+  provisioning.value = true
+  router.replace({ name: 'List', params: { id: newListId } }).finally(() => {
+    provisioning.value = false
+  })
 }
 
 function onListDeleted () {
