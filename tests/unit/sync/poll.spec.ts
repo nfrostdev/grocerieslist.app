@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { startPoller, stopPoller } from '@/sync/poll'
+import { pollList } from '@/sync/transport'
+import { applyPollPayload } from '@/sync/reconcile'
+import { getMeta, getSyncMetaMap, saveSyncMetaMap } from '@/sync/storage'
 
 vi.mock('@/sync/transport', () => ({ pollList: vi.fn() }))
 vi.mock('@/sync/reconcile', () => ({ applyPollPayload: vi.fn() }))
@@ -7,11 +11,6 @@ vi.mock('@/sync/storage', () => ({
   getSyncMetaMap: vi.fn(() => ({})),
   saveSyncMetaMap: vi.fn()
 }))
-
-import { startPoller, stopPoller } from '@/sync/poll'
-import { pollList } from '@/sync/transport'
-import { applyPollPayload } from '@/sync/reconcile'
-import { getMeta, getSyncMetaMap, saveSyncMetaMap } from '@/sync/storage'
 
 describe('sync/poll', () => {
   beforeEach(() => {

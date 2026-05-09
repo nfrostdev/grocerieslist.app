@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { provision, join } from '@/sync'
+import { provisionList, joinList } from '@/sync/transport'
+import { startPoller } from '@/sync/poll'
+import { applyJoinPayload } from '@/sync/reconcile'
+import { getMeta } from '@/sync/storage'
+import { useListsStore } from '@/stores/lists'
 
 vi.mock('@/sync/transport', () => ({
   provisionList: vi.fn(),
@@ -7,13 +13,6 @@ vi.mock('@/sync/transport', () => ({
 }))
 vi.mock('@/sync/poll', () => ({ startPoller: vi.fn() }))
 vi.mock('@/sync/reconcile', () => ({ applyJoinPayload: vi.fn() }))
-
-import { provision, join } from '@/sync'
-import { provisionList, joinList } from '@/sync/transport'
-import { startPoller } from '@/sync/poll'
-import { applyJoinPayload } from '@/sync/reconcile'
-import { getMeta } from '@/sync/storage'
-import { useListsStore } from '@/stores/lists'
 
 describe('sync/index — provision', () => {
   beforeEach(() => {
@@ -46,7 +45,9 @@ describe('sync/index — provision', () => {
   it('sends only non-deleted items to provisionList', async () => {
     provisionList.mockResolvedValue({ ok: true, data: { id: 'srv2', authToken: 't2' } })
     const list = {
-      id: 'loc2', n: 'List', i: [
+      id: 'loc2',
+      n: 'List',
+      i: [
         { id: 'i1', n: 'Bread', q: '1', c: 0, u: 1, d: 0 },
         { id: 'i2', n: 'Milk', q: '1', c: 0, u: 1, d: 1 }
       ]
