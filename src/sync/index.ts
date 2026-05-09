@@ -104,3 +104,8 @@ export async function deleteList (listId: string): Promise<boolean> {
   cleanupListLocally(listId)
   return true
 }
+
+export function leaveList (listId: string): void {
+  stopPoller(listId)
+  cleanupListLocally(listId)
+}
