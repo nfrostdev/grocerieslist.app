@@ -35,6 +35,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useListsStore } from '@/stores/lists'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import type List from '@/classes/List'
+import * as sync from '@/sync'
 
 const listsStore = useListsStore()
 const lists = computed(() => listsStore.lists)
@@ -44,9 +45,21 @@ function requestDelete (list: List): void {
   pendingDelete.value = list
 }
 
-function confirmDelete (): void {
-  if (pendingDelete.value) listsStore.deleteList(pendingDelete.value.id)
+async function confirmDelete (): Promise<void> {
+  if (!pendingDelete.value) return
+  const id = pendingDelete.value.id
   pendingDelete.value = null
+
+  const meta = sync.getMeta(id)
+  if (meta) {
+    if (meta.role === 'owner') {
+      await sync.deleteList(id)
+    } else {
+      sync.leaveList(id)
+    }
+  } else {
+    listsStore.deleteList(id)
+  }
 }
 
 function onModalOpenChange (value: boolean): void {

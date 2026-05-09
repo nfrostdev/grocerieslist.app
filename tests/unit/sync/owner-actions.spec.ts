@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { enableSharing, disableSharing, deleteList } from '@/sync'
+import { enableSharing, disableSharing, deleteList, leaveList } from '@/sync'
 import { mintToken, revokeToken, deleteListRequest } from '@/sync/transport'
 import { stopPoller } from '@/sync/poll'
 import { cleanupListLocally } from '@/sync/cleanup'
@@ -118,6 +118,14 @@ describe('deleteList', () => {
 
     expect(await deleteList('list1')).toBe(true)
     expect(mDeleteListRequest).toHaveBeenCalledWith('list1', 'owner-tok')
+    expect(mStopPoller).toHaveBeenCalledWith('list1')
+    expect(mCleanupListLocally).toHaveBeenCalledWith('list1')
+  })
+})
+
+describe('leaveList', () => {
+  it('calls stopPoller and cleanupListLocally', () => {
+    leaveList('list1')
     expect(mStopPoller).toHaveBeenCalledWith('list1')
     expect(mCleanupListLocally).toHaveBeenCalledWith('list1')
   })

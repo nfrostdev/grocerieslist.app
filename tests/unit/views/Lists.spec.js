@@ -4,6 +4,14 @@ import { createTestingPinia } from '@pinia/testing'
 import { useListsStore } from '@/stores/lists'
 import Lists from '@/views/Lists.vue'
 
+import * as sync from '@/sync'
+
+vi.mock('@/sync', () => ({
+  getMeta: vi.fn(),
+  deleteList: vi.fn(),
+  leaveList: vi.fn()
+}))
+
 const stubs = {
   RouterLink: { template: '<a><slot /></a>' },
   FontAwesomeIcon: { template: '<span />' }
@@ -23,6 +31,10 @@ describe('Lists.vue', () => {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })
+    vi.mocked(sync.getMeta).mockReturnValue(null)
+    vi.mocked(sync.deleteList).mockResolvedValue(true)
+    vi.resetAllMocks()
+    vi.mocked(sync.getMeta).mockReturnValue(null)
   })
 
   it('shows empty-state message when there are no lists', () => {
@@ -50,12 +62,38 @@ describe('Lists.vue', () => {
     expect(modal.text()).toContain('Delete list?')
   })
 
-  it('calls deleteList when the modal Delete button is clicked', async () => {
+  it('calls store.deleteList for unsynced lists', async () => {
     const wrapper = mountLists([{ id: 'a1', n: 'Fruit', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
     await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.vm.$nextTick()
     expect(store.deleteList).toHaveBeenCalledWith('a1')
+    expect(wrapper.find('.confirm-modal').exists()).toBe(false)
+  })
+
+  it('calls sync.deleteList for owner synced lists', async () => {
+    vi.mocked(sync.getMeta).mockReturnValue({ role: 'owner', authToken: 'tok', lastVersion: 1 })
+    vi.mocked(sync.deleteList).mockResolvedValue(true)
+    const wrapper = mountLists([{ id: 'srv1', n: 'Shared', i: [] }])
+    const store = useListsStore()
+    await wrapper.find('.list__icon--delete').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(sync.deleteList).toHaveBeenCalledWith('srv1')
+    expect(store.deleteList).not.toHaveBeenCalled()
+    expect(wrapper.find('.confirm-modal').exists()).toBe(false)
+  })
+
+  it('calls sync.leaveList for editor synced lists', async () => {
+    vi.mocked(sync.getMeta).mockReturnValue({ role: 'editor', authToken: 'tok', lastVersion: 1 })
+    const wrapper = mountLists([{ id: 'srv2', n: 'Joined', i: [] }])
+    const store = useListsStore()
+    await wrapper.find('.list__icon--delete').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(sync.leaveList).toHaveBeenCalledWith('srv2')
+    expect(store.deleteList).not.toHaveBeenCalled()
     expect(wrapper.find('.confirm-modal').exists()).toBe(false)
   })
 
