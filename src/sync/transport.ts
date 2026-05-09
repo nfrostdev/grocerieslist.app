@@ -118,17 +118,12 @@ export async function mintToken (
 
 export async function revokeToken (
   listId: string,
-  authToken: string,
-  tokenHash: string
+  authToken: string
 ): Promise<TransportResult<Record<string, never>>> {
   try {
     const res = await fetch(`/api/lists/${listId}/tokens/revoke`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ tokenHash })
+      headers: { Authorization: `Bearer ${authToken}` }
     })
     if (!res.ok) return { ok: false, error: normError(res.status) }
     return { ok: true, data: {} as Record<string, never> }

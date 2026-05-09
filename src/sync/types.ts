@@ -1,15 +1,8 @@
-export interface EditorToken {
-  token: string
-  hash: string
-  label: string
-}
-
 export interface SyncMeta {
   authToken: string
   role: 'owner' | 'editor'
   lastVersion: number
-  label?: string
-  editorTokens?: EditorToken[]
+  shareToken?: string
 }
 
 export type SyncMetaMap = Record<string, SyncMeta>

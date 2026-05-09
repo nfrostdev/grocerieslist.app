@@ -470,56 +470,48 @@ describe('POST /api/lists/:id/tokens/revoke', () => {
     return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
   }
 
-  async function hashToken (token: string): Promise<string> {
-    const data = new TextEncoder().encode(token)
-    const hash = await crypto.subtle.digest('SHA-256', data)
-    let bin = ''
-    const bytes = new Uint8Array(hash)
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  function revokeReq (listId: string, token: string) {
+    return new Request(`http://localhost/api/lists/${listId}/tokens/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
   }
 
-  it('revokes a minted editor token', async () => {
+  it('revokes all editor tokens for the list', async () => {
     const { id, authToken } = await setup()
     const { token: editorToken } = await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${authToken}` }
     }), id).then(r => r.json() as Promise<{ token: string }>)
 
-    const editorHash = await hashToken(editorToken)
-    const revokeReq = new Request(`http://localhost/api/lists/${id}/tokens/revoke`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ tokenHash: editorHash })
-    })
-    const res = await handleRevokeToken(db, revokeReq, id)
+    const res = await handleRevokeToken(db, revokeReq(id, authToken), id)
     expect(res.status).toBe(200)
 
-    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
+    const pollRes = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, {
       headers: { Authorization: `Bearer ${editorToken}` }
-    })
-    const pollRes = await handlePoll(db, pollReq, id)
+    }), id)
     expect(pollRes.status).toBe(401)
   })
 
-  it('returns 400 when trying to revoke own token', async () => {
+  it('owner token remains valid after revoking editors', async () => {
     const { id, authToken } = await setup()
-    const ownerHash = await hashToken(authToken)
-    const revokeReq = new Request(`http://localhost/api/lists/${id}/tokens/revoke`, {
+    await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ tokenHash: ownerHash })
-    })
-    const res = await handleRevokeToken(db, revokeReq, id)
-    expect(res.status).toBe(400)
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id)
+
+    await handleRevokeToken(db, revokeReq(id, authToken), id)
+
+    const pollRes = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id)
+    expect(pollRes.status).toBe(200)
   })
 
   it('returns 401 without auth', async () => {
     const { id } = await setup()
     const res = await handleRevokeToken(db, new Request(`http://localhost/api/lists/${id}/tokens/revoke`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tokenHash: 'abc' })
+      method: 'POST'
     }), id)
     expect(res.status).toBe(401)
   })

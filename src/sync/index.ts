@@ -6,7 +6,6 @@ import { getMeta, setMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
 import { startPoller, stopPoller } from './poll'
 import { startDrainer } from './queue'
 import { cleanupListLocally } from './cleanup'
-import { hashToken } from './crypto'
 
 export { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
 export { enqueue } from './queue'
@@ -55,44 +54,39 @@ export function startPolling (): void {
   startDrainer()
 }
 
-export async function mintEditorToken (
-  listId: string,
-  label: string
-): Promise<{ token: string; hash: string; joinUrl: string } | null> {
+export async function enableSharing (listId: string): Promise<string | null> {
   const meta = getMeta(listId)
   if (!meta || meta.role !== 'owner') return null
+
+  if (meta.shareToken) {
+    return `${window.location.origin}/#join=${listId}.${meta.shareToken}`
+  }
 
   const result = await mintToken(listId, meta.authToken)
   if (!result.ok) return null
 
   const { token } = result.data
-  const hash = await hashToken(token)
-  const joinUrl = `${window.location.origin}/#join=${listId}.${token}`
-
   const map = getSyncMetaMap()
   const entry = map[listId]
   if (entry) {
-    entry.editorTokens = [...(entry.editorTokens ?? []), { token, hash, label }]
+    entry.shareToken = token
     saveSyncMetaMap(map)
   }
 
-  return { token, hash, joinUrl }
+  return `${window.location.origin}/#join=${listId}.${token}`
 }
 
-export async function revokeEditorToken (
-  listId: string,
-  tokenHash: string
-): Promise<boolean> {
+export async function disableSharing (listId: string): Promise<boolean> {
   const meta = getMeta(listId)
   if (!meta || meta.role !== 'owner') return false
 
-  const result = await revokeToken(listId, meta.authToken, tokenHash)
+  const result = await revokeToken(listId, meta.authToken)
   if (!result.ok) return false
 
   const map = getSyncMetaMap()
   const entry = map[listId]
-  if (entry?.editorTokens) {
-    entry.editorTokens = entry.editorTokens.filter(t => t.hash !== tokenHash)
+  if (entry) {
+    delete entry.shareToken
     saveSyncMetaMap(map)
   }
 

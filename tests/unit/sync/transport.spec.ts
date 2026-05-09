@@ -104,18 +104,18 @@ describe('sync/transport', () => {
   describe('revokeToken', () => {
     it('returns ok on 200', async () => {
       vi.stubGlobal('fetch', mockFetch(true, 200, {}))
-      const result = await revokeToken('list1', 'owner-tok', 'hash1')
+      const result = await revokeToken('list1', 'owner-tok')
       expect(result.ok).toBe(true)
     })
 
     it('returns unauthorized on 401', async () => {
       vi.stubGlobal('fetch', mockFetch(false, 401, {}))
-      expect(await revokeToken('list1', 'bad', 'hash1')).toEqual({ ok: false, error: { kind: 'unauthorized' } })
+      expect(await revokeToken('list1', 'bad')).toEqual({ ok: false, error: { kind: 'unauthorized' } })
     })
 
     it('returns network error when fetch throws', async () => {
       vi.stubGlobal('fetch', mockNetworkError())
-      expect(await revokeToken('list1', 'tok', 'hash1')).toEqual({ ok: false, error: { kind: 'network' } })
+      expect(await revokeToken('list1', 'tok')).toEqual({ ok: false, error: { kind: 'network' } })
     })
   })
 

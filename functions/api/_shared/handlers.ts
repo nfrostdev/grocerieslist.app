@@ -234,26 +234,9 @@ export async function handleRevokeToken (
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  let body: { tokenHash?: unknown }
-  try {
-    body = await request.json() as typeof body
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  if (typeof body.tokenHash !== 'string') {
-    return Response.json({ error: 'tokenHash required' }, { status: 400 })
-  }
-
-  const authHeader = request.headers.get('Authorization')!
-  const requesterHash = await hashToken(authHeader.slice(7))
-  if (requesterHash === body.tokenHash) {
-    return Response.json({ error: 'Cannot revoke own token' }, { status: 400 })
-  }
-
   await db.prepare(
-    'UPDATE list_tokens SET revoked_at = ? WHERE token_hash = ? AND list_id = ?'
-  ).bind(Date.now(), body.tokenHash, listId).run()
+    'UPDATE list_tokens SET revoked_at = ? WHERE list_id = ? AND role = ?'
+  ).bind(Date.now(), listId, 'editor').run()
 
   return Response.json({})
 }
