@@ -4,8 +4,10 @@ import { provisionList, joinList } from './transport'
 import { applyJoinPayload } from './reconcile'
 import { getMeta, setMeta, getSyncMetaMap } from './storage'
 import { startPoller } from './poll'
+import { startDrainer } from './queue'
 
 export { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
+export { enqueue } from './queue'
 
 export function isSynced (listId: string): boolean {
   return getMeta(listId) != null
@@ -48,4 +50,5 @@ export function startPolling (): void {
   for (const listId of Object.keys(map)) {
     startPoller(listId)
   }
+  startDrainer()
 }

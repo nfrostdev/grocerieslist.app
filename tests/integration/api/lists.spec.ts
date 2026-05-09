@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { Miniflare } from 'miniflare'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { handleProvision, handleJoin, handlePoll } from '../../../functions/api/_shared/handlers'
+import { handleProvision, handleJoin, handlePoll, handleUpsertItem, handlePatchList } from '../../../functions/api/_shared/handlers'
 
 const schema = readFileSync(resolve(__dirname, '../../../schema.sql'), 'utf-8')
 
@@ -241,5 +241,168 @@ describe('GET /api/lists/:id?since=', () => {
     })
     const res = await handlePoll(db, req, '01JVKZ00000000000000000000')
     expect(res.status).toBe(401) // token not valid for this list
+  })
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/lists/:id/items/:itemId (upsert)
+// ---------------------------------------------------------------------------
+
+describe('POST /api/lists/:id/items/:itemId', () => {
+  async function setup () {
+    const provReq = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Upsert Test', items: [] })
+    })
+    return handleProvision(db, provReq).then(r => r.json() as Promise<{ id: string; authToken: string }>)
+  }
+
+  function upsertReq (listId: string, itemId: string, token: string, item: object) {
+    return new Request(`http://localhost/api/lists/${listId}/items/${itemId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(item)
+    })
+  }
+
+  it('inserts a new item and returns it', async () => {
+    const { id, authToken } = await setup()
+    const item = { id: 'item0001', n: 'Milk', q: '2', c: 0, u: 1000, d: 0 }
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, item), id, 'item0001')
+    expect(res.status).toBe(200)
+    const body = await res.json() as { item: typeof item }
+    expect(body.item.n).toBe('Milk')
+    expect(body.item.u).toBe(1000)
+  })
+
+  it('increments list version on insert', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Eggs', q: '6', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const body = await handlePoll(db, pollReq, id).then(r => r.json() as Promise<{ version: number }>)
+    expect(body.version).toBe(2)
+  })
+
+  it('accepts a newer write and returns canonical', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '2', c: 0, u: 2000, d: 0 }), id, 'item0001')
+    expect(res.status).toBe(200)
+    const body = await res.json() as { item: { q: string; u: number } }
+    expect(body.item.q).toBe('2')
+    expect(body.item.u).toBe(2000)
+  })
+
+  it('returns existing canonical row on stale write', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '2', c: 0, u: 2000, d: 0 }), id, 'item0001')
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    expect(res.status).toBe(200)
+    const body = await res.json() as { item: { q: string; u: number } }
+    expect(body.item.q).toBe('2') // canonical wins
+    expect(body.item.u).toBe(2000)
+  })
+
+  it('does not increment version on stale write', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '2', c: 0, u: 2000, d: 0 }), id, 'item0001')
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const body = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, { headers: { Authorization: `Bearer ${authToken}` } }), id)
+      .then(r => r.json() as Promise<{ version: number }>)
+    expect(body.version).toBe(2) // only the first upsert bumped version
+  })
+
+  it('stores and returns a tombstone', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 2000, d: 1 }), id, 'item0001')
+    const body = await res.json() as { item: { d: number } }
+    expect(body.item.d).toBe(1)
+  })
+
+  it('returns 400 when n is missing', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { q: '1', u: 1000 }), id, 'item0001')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 401 without a token', async () => {
+    const { id } = await setup()
+    const res = await handleUpsertItem(db, new Request(`http://localhost/api/lists/${id}/items/item0001`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ n: 'Milk', q: '1', c: 0, u: 1000, d: 0 })
+    }), id, 'item0001')
+    expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// PATCH /api/lists/:id (rename)
+// ---------------------------------------------------------------------------
+
+describe('PATCH /api/lists/:id', () => {
+  async function setup () {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Original Name', items: [] })
+    })
+    return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
+  }
+
+  function patchReq (listId: string, token: string, body: object) {
+    return new Request(`http://localhost/api/lists/${listId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body)
+    })
+  }
+
+  it('renames the list and returns canonical', async () => {
+    const { id, authToken } = await setup()
+    const res = await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { name: string; u: number }
+    expect(body.name).toBe('New Name')
+    expect(body.u).toBe(5000)
+  })
+
+  it('increments list version on rename', async () => {
+    const { id, authToken } = await setup()
+    await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
+    const body = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, { headers: { Authorization: `Bearer ${authToken}` } }), id)
+      .then(r => r.json() as Promise<{ version: number; name: string }>)
+    expect(body.version).toBe(2)
+    expect(body.name).toBe('New Name')
+  })
+
+  it('returns existing canonical on stale rename', async () => {
+    const { id, authToken } = await setup()
+    await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
+    const res = await handlePatchList(db, patchReq(id, authToken, { name: 'Stale Name', u: 3000 }), id)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { name: string; u: number }
+    expect(body.name).toBe('New Name')
+    expect(body.u).toBe(5000)
+  })
+
+  it('returns 400 when name is missing', async () => {
+    const { id, authToken } = await setup()
+    const res = await handlePatchList(db, patchReq(id, authToken, { u: 5000 }), id)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 401 without a token', async () => {
+    const { id } = await setup()
+    const res = await handlePatchList(db, new Request(`http://localhost/api/lists/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Hacked', u: 9999 })
+    }), id)
+    expect(res.status).toBe(401)
   })
 })

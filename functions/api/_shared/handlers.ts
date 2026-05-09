@@ -2,6 +2,93 @@ import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken } from './ulid'
 import { hashToken, authenticate } from './auth'
 
+export async function handleUpsertItem (
+  db: D1Database,
+  request: Request,
+  listId: string,
+  itemId: string
+): Promise<Response> {
+  const auth = await authenticate(db, request, listId)
+  if (auth instanceof Response) return auth
+
+  let body: { n?: unknown; q?: unknown; c?: unknown; u?: unknown; d?: unknown }
+  try {
+    body = await request.json() as typeof body
+  } catch {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  if (typeof body.n !== 'string' || typeof body.u !== 'number') {
+    return Response.json({ error: 'n and u required' }, { status: 400 })
+  }
+
+  const incoming: ItemRow = {
+    id: itemId,
+    n: body.n,
+    q: typeof body.q === 'string' ? body.q : '',
+    c: typeof body.c === 'number' ? body.c : 0,
+    u: body.u,
+    d: typeof body.d === 'number' ? body.d : 0,
+  }
+
+  const existing = await db.prepare(
+    'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND id = ?'
+  ).bind(listId, itemId).first<ItemRow>()
+
+  if (existing && existing.u > incoming.u) {
+    return Response.json({ item: existing })
+  }
+
+  await db.batch([
+    db.prepare(
+      `INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(list_id, id) DO UPDATE
+       SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
+    ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d),
+    db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId),
+  ])
+
+  return Response.json({ item: incoming })
+}
+
+export async function handlePatchList (
+  db: D1Database,
+  request: Request,
+  listId: string
+): Promise<Response> {
+  const auth = await authenticate(db, request, listId)
+  if (auth instanceof Response) return auth
+
+  let body: { name?: unknown; u?: unknown }
+  try {
+    body = await request.json() as typeof body
+  } catch {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  if (typeof body.name !== 'string' || typeof body.u !== 'number') {
+    return Response.json({ error: 'name and u required' }, { status: 400 })
+  }
+
+  const list = await db.prepare(
+    'SELECT id, name, u, version FROM lists WHERE id = ?'
+  ).bind(listId).first<ListRow>()
+
+  if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
+
+  if (list.u > body.u) {
+    return Response.json({ name: list.name, u: list.u })
+  }
+
+  await db.batch([
+    db.prepare(
+      'UPDATE lists SET name = ?, u = ?, version = version + 1 WHERE id = ?'
+    ).bind(body.name, body.u, listId),
+  ])
+
+  return Response.json({ name: body.name, u: body.u })
+}
+
 export async function handleProvision (db: D1Database, request: Request): Promise<Response> {
   let body: { name?: unknown; items?: unknown }
   try {
