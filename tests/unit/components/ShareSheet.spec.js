@@ -26,7 +26,7 @@ vi.mock('@/sync', () => ({
 
 const list = { id: 'l1', n: 'Costco', i: [{ id: 'i1', n: 'Eggs', q: '1', c: 0, u: 1, d: 0 }] }
 
-const OWNER_META = { authToken: 'owner-tok', role: 'owner', lastVersion: 1, shareToken: 'share-tok' }
+const OWNER_META = { authToken: 'owner-tok', role: 'owner', lastCursor: 1, shareToken: 'share-tok' }
 const SHARE_URL = 'https://example.com/#join=l1.share-tok'
 
 const mountSheet = (props = {}) => mount(ShareSheet, {
@@ -87,7 +87,7 @@ describe('ShareSheet', () => {
 
   it('shows not-sharing state for a synced owner without shareToken', async () => {
     isSyncedMock.mockReturnValue(true)
-    getMetaMock.mockReturnValue({ authToken: 'owner-tok', role: 'owner', lastVersion: 1 })
+    getMetaMock.mockReturnValue({ authToken: 'owner-tok', role: 'owner', lastCursor: 1 })
     const wrapper = mountSheet({ open: true })
     await flushPromises()
     expect(provisionMock).not.toHaveBeenCalled()
@@ -121,7 +121,7 @@ describe('ShareSheet', () => {
 
   it('clicking Enable sharing calls enableSharing and shows QR', async () => {
     isSyncedMock.mockReturnValue(true)
-    getMetaMock.mockReturnValue({ authToken: 'owner-tok', role: 'owner', lastVersion: 1 })
+    getMetaMock.mockReturnValue({ authToken: 'owner-tok', role: 'owner', lastCursor: 1 })
     const wrapper = mountSheet({ open: true })
     await flushPromises()
 

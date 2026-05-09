@@ -37,7 +37,7 @@ describe('sync/transport', () => {
   })
 
   describe('joinList', () => {
-    const JOIN_DATA = { listId: 'abc', role: 'editor', name: 'Test', version: 1, items: [] }
+    const JOIN_DATA = { listId: 'abc', role: 'editor', name: 'Test', cursor: 0, items: [] }
 
     it('returns data on 200', async () => {
       vi.stubGlobal('fetch', mockFetch(true, 200, JOIN_DATA))
@@ -63,7 +63,7 @@ describe('sync/transport', () => {
 
   describe('pollList', () => {
     it('returns data on 200', async () => {
-      const data = { version: 2, items: [] }
+      const data = { cursor: 2, items: [] }
       vi.stubGlobal('fetch', mockFetch(true, 200, data))
       expect(await pollList('abc', 'tok', 1)).toEqual({ ok: true, data })
     })

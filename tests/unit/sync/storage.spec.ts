@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getSyncMetaMap, saveSyncMetaMap, getMeta, setMeta, removeMeta } from '@/sync/storage'
 
-const META = { authToken: 'tok', role: 'owner' as const, lastVersion: 1 }
+const META = { authToken: 'tok', role: 'owner' as const, lastCursor: 1 }
 
 describe('sync/storage', () => {
   beforeEach(() => localStorage.clear())
@@ -31,7 +31,7 @@ describe('sync/storage', () => {
   })
 
   it('setMeta merges without clobbering other entries', () => {
-    const meta2 = { authToken: 't2', role: 'editor' as const, lastVersion: 2 }
+    const meta2 = { authToken: 't2', role: 'editor' as const, lastCursor: 2 }
     setMeta('id1', META)
     setMeta('id2', meta2)
     expect(getMeta('id1')).toEqual(META)

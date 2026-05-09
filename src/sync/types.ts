@@ -1,14 +1,14 @@
 export interface SyncMeta {
   authToken: string
   role: 'owner' | 'editor'
-  lastVersion: number
+  lastCursor: number
   shareToken?: string
 }
 
 export type SyncMetaMap = Record<string, SyncMeta>
 
 export interface PollPayload {
-  version: number
+  cursor: number
   name?: string
   nameUpdatedAt?: number
   items: ItemPayload[]
@@ -32,7 +32,7 @@ export interface JoinResponse {
   listId: string
   role: 'owner' | 'editor'
   name: string
-  version: number
+  cursor: number
   items: ItemPayload[]
 }
 

@@ -121,11 +121,12 @@ describe('POST /api/lists/:id/join', () => {
     })
     const res = await handleJoin(db, req, id)
     expect(res.status).toBe(200)
-    const body = await res.json() as { listId: string; role: string; name: string; version: number; items: unknown[] }
+    const body = await res.json() as { listId: string; role: string; name: string; version: number; cursor: number; items: unknown[] }
     expect(body.listId).toBe(id)
     expect(body.role).toBe('editor')
     expect(body.name).toBe('Test List')
     expect(body.version).toBe(1)
+    expect(body.cursor).toBe(0)
     expect(body.items).toEqual([])
   })
 
@@ -213,6 +214,35 @@ describe('GET /api/lists/:id?since=', () => {
     const body = await res.json() as { items: Array<{ id: string }> }
     expect(body.items).toHaveLength(1)
     expect(body.items[0].id).toBe('bbb22222')
+  })
+
+  it('returns cursor = max(list.u, max items.u)', async () => {
+    const items = [
+      { id: 'aaa11111', n: 'A', q: '', c: 0, u: 1000, d: 0 },
+      { id: 'bbb22222', n: 'B', q: '', c: 0, u: 5000, d: 0 }
+    ]
+    const { id, authToken } = await provision(items)
+    const req = new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const body = await handlePoll(db, req, id).then(r => r.json() as Promise<{ cursor: number }>)
+    expect(body.cursor).toBe(5000)
+  })
+
+  it('returns no items when since equals current cursor (empty delta)', async () => {
+    const items = [{ id: 'ccc33333', n: 'C', q: '', c: 0, u: 7777, d: 0 }]
+    const { id, authToken } = await provision(items)
+
+    const first = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id).then(r => r.json() as Promise<{ cursor: number; items: unknown[] }>)
+    expect(first.items).toHaveLength(1)
+
+    const second = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=${first.cursor}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id).then(r => r.json() as Promise<{ cursor: number; items: unknown[] }>)
+    expect(second.items).toHaveLength(0)
+    expect(second.cursor).toBe(first.cursor)
   })
 
   it('returns 401 without a token', async () => {

@@ -17,15 +17,15 @@ describe('sync/index', () => {
     })
 
     it('returns true when meta is present', () => {
-      setMeta('abc', { authToken: 'tok', role: 'owner', lastVersion: 1 })
+      setMeta('abc', { authToken: 'tok', role: 'owner', lastCursor: 1 })
       expect(isSynced('abc')).toBe(true)
     })
   })
 
   describe('startPolling', () => {
     it('calls startPoller for each syncMeta entry', () => {
-      setMeta('id1', { authToken: 't1', role: 'owner', lastVersion: 1 })
-      setMeta('id2', { authToken: 't2', role: 'editor', lastVersion: 2 })
+      setMeta('id1', { authToken: 't1', role: 'owner', lastCursor: 1 })
+      setMeta('id2', { authToken: 't2', role: 'editor', lastCursor: 2 })
       startPolling()
       expect(startPoller).toHaveBeenCalledTimes(2)
       expect(startPoller).toHaveBeenCalledWith('id1')

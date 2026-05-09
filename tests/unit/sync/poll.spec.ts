@@ -38,7 +38,7 @@ describe('sync/poll', () => {
   })
 
   it('stopPoller: prevents the loop body from running', async () => {
-    mGetMeta.mockReturnValue({ authToken: 'tok', lastVersion: 0, role: 'owner' })
+    mGetMeta.mockReturnValue({ authToken: 'tok', lastCursor: 0, role: 'owner' })
     startPoller('stop1')
     stopPoller('stop1')
     await vi.runAllTimersAsync()
@@ -52,25 +52,26 @@ describe('sync/poll', () => {
     expect(mPollList).not.toHaveBeenCalled()
   })
 
-  it('runPoller: calls pollList, applyPollPayload, and updates stored version on success', async () => {
+  it('runPoller: calls pollList, applyPollPayload, and stores returned cursor on success', async () => {
     mGetMeta
-      .mockReturnValueOnce({ authToken: 'tok', lastVersion: 5, role: 'owner' })
+      .mockReturnValueOnce({ authToken: 'tok', lastCursor: 1000, role: 'owner' })
       .mockReturnValue(null)
-    mPollList.mockResolvedValue({ ok: true, data: { version: 6, items: [] } })
-    mGetSyncMetaMap.mockReturnValue({ succ1: { authToken: 'tok', lastVersion: 5, role: 'owner' } })
+    const payload = { cursor: 2500, items: [] }
+    mPollList.mockResolvedValue({ ok: true, data: payload })
+    mGetSyncMetaMap.mockReturnValue({ succ1: { authToken: 'tok', lastCursor: 1000, role: 'owner' } })
 
     startPoller('succ1')
     await vi.runAllTimersAsync()
 
-    expect(mPollList).toHaveBeenCalledWith('succ1', 'tok', 5)
-    expect(vi.mocked(applyPollPayload)).toHaveBeenCalledWith('succ1', { version: 6, items: [] })
+    expect(mPollList).toHaveBeenCalledWith('succ1', 'tok', 1000)
+    expect(vi.mocked(applyPollPayload)).toHaveBeenCalledWith('succ1', payload)
     expect(vi.mocked(saveSyncMetaMap)).toHaveBeenCalledWith(
-      expect.objectContaining({ succ1: expect.objectContaining({ lastVersion: 6 }) })
+      expect.objectContaining({ succ1: expect.objectContaining({ lastCursor: 2500 }) })
     )
   })
 
   it('runPoller: stops and removes itself on unauthorized error', async () => {
-    mGetMeta.mockReturnValue({ authToken: 'bad', lastVersion: 0, role: 'editor' })
+    mGetMeta.mockReturnValue({ authToken: 'bad', lastCursor: 0, role: 'editor' })
     mPollList.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
 
     startPoller('unauth1')
@@ -84,7 +85,7 @@ describe('sync/poll', () => {
   })
 
   it('runPoller: stops on not-found error', async () => {
-    mGetMeta.mockReturnValue({ authToken: 'tok', lastVersion: 0, role: 'owner' })
+    mGetMeta.mockReturnValue({ authToken: 'tok', lastCursor: 0, role: 'owner' })
     mPollList.mockResolvedValue({ ok: false, error: { kind: 'not-found' } })
 
     startPoller('notfound1')
@@ -96,7 +97,7 @@ describe('sync/poll', () => {
 
   it('runPoller: backs off and retries on network error', async () => {
     mGetMeta
-      .mockReturnValueOnce({ authToken: 'tok', lastVersion: 0, role: 'owner' })
+      .mockReturnValueOnce({ authToken: 'tok', lastCursor: 0, role: 'owner' })
       .mockReturnValue(null)
     mPollList.mockResolvedValue({ ok: false, error: { kind: 'network' } })
 

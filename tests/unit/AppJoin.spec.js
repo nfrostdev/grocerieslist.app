@@ -65,7 +65,7 @@ describe('App.vue — handleJoinFragment', () => {
   })
 
   it('navigates without calling join when list is already synced', async () => {
-    sync.getMeta.mockReturnValue({ authToken: 'tok', role: 'owner', lastVersion: 1 })
+    sync.getMeta.mockReturnValue({ authToken: 'tok', role: 'owner', lastCursor: 1 })
     window.location.hash = '#join=listid123.tokenxyz'
     const router = makeRouter()
     await mountApp(router)

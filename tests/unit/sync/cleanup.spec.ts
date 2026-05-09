@@ -23,7 +23,7 @@ describe('cleanupListLocally', () => {
   it('removes meta and deletes list from store when meta exists', () => {
     const store = useListsStore()
     store.$patch({ lists: [{ id: 'list1', n: 'Test', i: [] }] })
-    setMeta('list1', { authToken: 'tok', role: 'owner', lastVersion: 1 })
+    setMeta('list1', { authToken: 'tok', role: 'owner', lastCursor: 1 })
 
     cleanupListLocally('list1')
 
@@ -34,7 +34,7 @@ describe('cleanupListLocally', () => {
   it('is idempotent — second call is a no-op', () => {
     const store = useListsStore()
     store.$patch({ lists: [{ id: 'list1', n: 'Test', i: [] }] })
-    setMeta('list1', { authToken: 'tok', role: 'owner', lastVersion: 1 })
+    setMeta('list1', { authToken: 'tok', role: 'owner', lastCursor: 1 })
 
     cleanupListLocally('list1')
     cleanupListLocally('list1')

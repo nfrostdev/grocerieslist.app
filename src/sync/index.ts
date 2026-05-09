@@ -23,9 +23,10 @@ export async function provision (
   if (!result.ok) return null
 
   const { id: newListId, authToken } = result.data
+  const lastCursor = items.reduce((m, i) => Math.max(m, i.u), 0)
 
   store.updateListId(list.id, newListId)
-  setMeta(newListId, { authToken, role: 'owner', lastVersion: 1 })
+  setMeta(newListId, { authToken, role: 'owner', lastCursor })
   startPoller(newListId)
 
   const joinUrl = `${window.location.origin}/#join=${newListId}.${authToken}`
@@ -40,7 +41,7 @@ export async function join (listId: string, token: string): Promise<boolean> {
   setMeta(listId, {
     authToken: token,
     role: result.data.role,
-    lastVersion: result.data.version
+    lastCursor: result.data.cursor
   })
   startPoller(listId)
   return true

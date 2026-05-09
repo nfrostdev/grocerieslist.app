@@ -73,7 +73,7 @@ describe('Lists.vue', () => {
   })
 
   it('calls sync.deleteList for owner synced lists', async () => {
-    vi.mocked(sync.getMeta).mockReturnValue({ role: 'owner', authToken: 'tok', lastVersion: 1 })
+    vi.mocked(sync.getMeta).mockReturnValue({ role: 'owner', authToken: 'tok', lastCursor: 1 })
     vi.mocked(sync.deleteList).mockResolvedValue(true)
     const wrapper = mountLists([{ id: 'srv1', n: 'Shared', i: [] }])
     const store = useListsStore()
@@ -86,7 +86,7 @@ describe('Lists.vue', () => {
   })
 
   it('calls sync.leaveList for editor synced lists', async () => {
-    vi.mocked(sync.getMeta).mockReturnValue({ role: 'editor', authToken: 'tok', lastVersion: 1 })
+    vi.mocked(sync.getMeta).mockReturnValue({ role: 'editor', authToken: 'tok', lastCursor: 1 })
     const wrapper = mountLists([{ id: 'srv2', n: 'Joined', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
