@@ -7,24 +7,11 @@ binding = "DB"
 database_name = "grocerieslist-sync"
 database_id = "75b68a5a-a7d1-43ed-9fea-a57f2537916d"
 
-# Rate limit bindings (Cloudflare Workers/Pages native rate limiter).
-# namespace_id values must be unique across all bindings in the account.
-# See: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
-
-[[unsafe.bindings]]
-name = "RATE_LIMIT_PROVISION"
-type = "ratelimit"
-namespace_id = "1001"
-simple = { limit = 10, period = 60 }
-
-[[unsafe.bindings]]
-name = "RATE_LIMIT_JOIN"
-type = "ratelimit"
-namespace_id = "1002"
-simple = { limit = 20, period = 60 }
-
-[[unsafe.bindings]]
-name = "RATE_LIMIT_MINT"
-type = "ratelimit"
-namespace_id = "1003"
-simple = { limit = 10, period = 60 }
+# Rate limit bindings — Pages does NOT support rate-limit bindings in
+# wrangler.toml (only Workers does). Configure these via the Cloudflare
+# dashboard: Pages project → Settings → Bindings → Rate Limiting.
+#
+# Required bindings (the code fails open if a binding is missing):
+#   RATE_LIMIT_PROVISION  limit=10  period=60   (provision per IP)
+#   RATE_LIMIT_JOIN       limit=20  period=60   (join per IP+list)
+#   RATE_LIMIT_MINT       limit=10  period=60   (mint per list)
