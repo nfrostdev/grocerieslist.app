@@ -30,7 +30,7 @@ export async function handleUpsertItem (
     q: typeof body.q === 'string' ? body.q : '',
     c: typeof body.c === 'number' ? body.c : 0,
     u: body.u,
-    d: typeof body.d === 'number' ? body.d : 0,
+    d: typeof body.d === 'number' ? body.d : 0
   }
 
   const existing = await db.prepare(
@@ -48,7 +48,7 @@ export async function handleUpsertItem (
        SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
     ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d),
     db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId),
-    db.prepare('DELETE FROM items WHERE list_id = ? AND d = 1 AND u < ?').bind(listId, Date.now() - TOMBSTONE_TTL_MS),
+    db.prepare('DELETE FROM items WHERE list_id = ? AND d = 1 AND u < ?').bind(listId, Date.now() - TOMBSTONE_TTL_MS)
   ])
 
   return Response.json({ item: incoming })
@@ -86,7 +86,7 @@ export async function handlePatchList (
   await db.batch([
     db.prepare(
       'UPDATE lists SET name = ?, u = ?, version = version + 1 WHERE id = ?'
-    ).bind(body.name, body.u, listId),
+    ).bind(body.name, body.u, listId)
   ])
 
   return Response.json({ name: body.name, u: body.u })
@@ -121,7 +121,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
       db.prepare(
         'INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)'
       ).bind(listId, item.id, item.n, item.q, item.c ?? 0, item.u ?? now, item.d ?? 0)
-    ),
+    )
   ])
 
   return Response.json({ id: listId, authToken })
@@ -197,7 +197,7 @@ export async function handleJoin (
     role: 'editor',
     name: list.name,
     version: list.version,
-    items,
+    items
   })
 }
 
@@ -255,7 +255,7 @@ export async function handleDeleteList (
   await db.batch([
     db.prepare('DELETE FROM items WHERE list_id = ?').bind(listId),
     db.prepare('DELETE FROM list_tokens WHERE list_id = ?').bind(listId),
-    db.prepare('DELETE FROM lists WHERE id = ?').bind(listId),
+    db.prepare('DELETE FROM lists WHERE id = ?').bind(listId)
   ])
 
   return Response.json({})

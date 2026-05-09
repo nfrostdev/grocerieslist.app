@@ -6,10 +6,18 @@ import vueStandard from '@vue/eslint-config-standard'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'functions/**', '.wrangler/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.wrangler/**'] },
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   ...tseslint.configs.recommended,
+  {
+    files: ['functions/**/*.ts'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: { ecmaVersion: 2022, sourceType: 'module' },
+      globals: { ...globals.worker, D1Database: 'readonly' }
+    }
+  },
   ...pluginVue.configs['flat/essential'],
   ...vueStandard,
   ...vueA11y.configs['flat/recommended'],
