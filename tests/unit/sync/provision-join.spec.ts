@@ -42,7 +42,7 @@ describe('sync/index — provision', () => {
 
     expect(result?.listId).toBe('srv1')
     expect(result?.joinUrl).toContain('#join=srv1.tok1')
-    expect(getMeta('srv1')).toEqual({ authToken: 'tok1', role: 'owner', lastVersion: 1 })
+    expect(getMeta('srv1')).toEqual({ authToken: 'tok1', role: 'owner', lastCursor: 0 })
     expect(mStartPoller).toHaveBeenCalledWith('srv1')
     expect(store.lists[0].id).toBe('srv1')
   })
@@ -63,6 +63,22 @@ describe('sync/index — provision', () => {
     expect(sentItems).toHaveLength(1)
     expect(sentItems[0].id).toBe('i1')
   })
+
+  it('sets lastCursor to max(item.u) of provisioned non-deleted items', async () => {
+    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv3', authToken: 't3' } })
+    const list = {
+      id: 'loc3',
+      n: 'List',
+      i: [
+        { id: 'i1', n: 'A', q: '', c: 0, u: 100, d: 0 },
+        { id: 'i2', n: 'B', q: '', c: 0, u: 250, d: 0 },
+        { id: 'i3', n: 'C', q: '', c: 0, u: 999, d: 1 }
+      ]
+    }
+    useListsStore().$patch({ lists: [list] })
+    await provision(list)
+    expect(getMeta('srv3')).toEqual({ authToken: 't3', role: 'owner', lastCursor: 250 })
+  })
 })
 
 describe('sync/index — join', () => {
@@ -79,12 +95,12 @@ describe('sync/index — join', () => {
   })
 
   it('applies payload, saves meta, starts poller, and returns true', async () => {
-    const data = { listId: 'list2', role: 'editor' as const, name: 'Shared', version: 3, items: [] }
+    const data = { listId: 'list2', role: 'editor' as const, name: 'Shared', cursor: 1700, items: [] }
     mJoinList.mockResolvedValue({ ok: true, data })
 
     expect(await join('list2', 'tok2')).toBe(true)
     expect(mApplyJoinPayload).toHaveBeenCalledWith(data)
-    expect(getMeta('list2')).toEqual({ authToken: 'tok2', role: 'editor', lastVersion: 3 })
+    expect(getMeta('list2')).toEqual({ authToken: 'tok2', role: 'editor', lastCursor: 1700 })
     expect(mStartPoller).toHaveBeenCalledWith('list2')
   })
 })

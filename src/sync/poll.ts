@@ -55,7 +55,7 @@ async function runPoller (listId: string, state: PollState): Promise<void> {
     const meta = getMeta(listId)
     if (!meta) { stopPoller(listId); break }
 
-    const result = await pollList(listId, meta.authToken, meta.lastVersion)
+    const result = await pollList(listId, meta.authToken, meta.lastCursor ?? 0)
     if (state.stopped) break
 
     if (result.ok) {
@@ -63,7 +63,7 @@ async function runPoller (listId: string, state: PollState): Promise<void> {
       applyPollPayload(listId, result.data)
       const map = getSyncMetaMap()
       if (map[listId]) {
-        map[listId].lastVersion = result.data.version
+        map[listId].lastCursor = result.data.cursor
         saveSyncMetaMap(map)
       }
       await sleep(POLL_INTERVAL_MS)

@@ -39,7 +39,7 @@ vi.mock('@/stores/toast', () => ({
 }))
 
 const ITEM = { id: 'item0001', n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }
-const META = { authToken: 'tok', role: 'owner' as const, lastVersion: 1 }
+const META = { authToken: 'tok', role: 'owner' as const, lastCursor: 1 }
 
 function mockStore (overrides: Record<string, unknown> = {}) {
   const store = { deleteList: vi.fn(), getListFromId: vi.fn(), mergeList: vi.fn(), ...overrides }

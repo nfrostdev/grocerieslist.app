@@ -148,7 +148,13 @@ export async function handlePoll (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND u > ?'
   ).bind(listId, since).all<ItemRow>()
 
-  const payload: Record<string, unknown> = { version: list.version, items }
+  const maxItemU = await db.prepare(
+    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
+  ).bind(listId).first<{ m: number }>()
+
+  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+
+  const payload: Record<string, unknown> = { version: list.version, cursor, items }
   if (list.u > since) {
     payload.name = list.name
     payload.nameUpdatedAt = list.u
@@ -192,11 +198,15 @@ export async function handleJoin (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ?'
   ).bind(listId).all<ItemRow>()
 
+  const maxItemU = items.reduce((m, i) => Math.max(m, i.u), 0)
+  const cursor = Math.max(list.u, maxItemU)
+
   return Response.json({
     listId: list.id,
     role: 'editor',
     name: list.name,
     version: list.version,
+    cursor,
     items
   })
 }

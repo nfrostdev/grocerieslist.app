@@ -24,8 +24,8 @@ const mDeleteListRequest = vi.mocked(deleteListRequest)
 const mStopPoller = vi.mocked(stopPoller)
 const mCleanupListLocally = vi.mocked(cleanupListLocally)
 
-const OWNER_META = { authToken: 'owner-tok', role: 'owner' as const, lastVersion: 1 }
-const EDITOR_META = { authToken: 'editor-tok', role: 'editor' as const, lastVersion: 1 }
+const OWNER_META = { authToken: 'owner-tok', role: 'owner' as const, lastCursor: 1 }
+const EDITOR_META = { authToken: 'editor-tok', role: 'editor' as const, lastCursor: 1 }
 
 beforeEach(() => {
   localStorage.clear()
