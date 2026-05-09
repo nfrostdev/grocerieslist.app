@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { getMeta, removeMeta } from '@/sync/storage'
+import { getMeta } from '@/sync/storage'
 import { upsertItem } from '@/sync/transport'
 import { reconcileServerItem } from '@/sync/reconcile'
-import { stopPoller } from '@/sync/poll'
+import { cleanupListLocally } from '@/sync/cleanup'
 import { useListsStore } from '@/stores/lists'
+import { useToastStore } from '@/stores/toast'
 import { enqueue, startDrainer, _resetForTest } from '@/sync/queue'
 
 vi.mock('@/sync/storage', () => ({
@@ -25,8 +26,16 @@ vi.mock('@/sync/poll', () => ({
   stopPoller: vi.fn()
 }))
 
+vi.mock('@/sync/cleanup', () => ({
+  cleanupListLocally: vi.fn()
+}))
+
 vi.mock('@/stores/lists', () => ({
   useListsStore: vi.fn()
+}))
+
+vi.mock('@/stores/toast', () => ({
+  useToastStore: vi.fn(() => ({ add: vi.fn() }))
 }))
 
 const ITEM = { id: 'item0001', n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }
@@ -44,6 +53,8 @@ beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
   vi.resetAllMocks()
+  vi.mocked(useToastStore).mockReturnValue({ add: vi.fn() } as unknown as ReturnType<typeof useToastStore>)
+  vi.mocked(useListsStore).mockReturnValue({ getListFromId: vi.fn(), deleteList: vi.fn(), mergeList: vi.fn() } as unknown as ReturnType<typeof useListsStore>)
 })
 
 afterEach(() => {
@@ -121,30 +132,34 @@ describe('flush — missing meta', () => {
 })
 
 describe('flush — 401/404 teardown', () => {
-  it('tears down on 401: removes meta, stops poller, deletes list', async () => {
+  it('tears down on 401: calls cleanupListLocally and shows revoke toast', async () => {
     vi.mocked(getMeta).mockReturnValue(META)
     vi.mocked(upsertItem).mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
-    const store = mockStore()
+    mockStore()
+    const toastAdd = vi.fn()
+    vi.mocked(useToastStore).mockReturnValue({ add: toastAdd } as unknown as ReturnType<typeof useToastStore>)
 
     enqueue({ kind: 'upsertItem', listId: 'list1', item: ITEM })
     await vi.runAllTimersAsync()
 
-    expect(vi.mocked(removeMeta)).toHaveBeenCalledWith('list1')
-    expect(vi.mocked(stopPoller)).toHaveBeenCalledWith('list1')
-    expect(store.deleteList).toHaveBeenCalledWith('list1')
+    expect(vi.mocked(cleanupListLocally)).toHaveBeenCalledWith('list1')
+    expect(toastAdd).toHaveBeenCalledWith(expect.stringContaining('revoked'), 'error')
     const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as unknown[]
     expect(q).toHaveLength(0)
   })
 
-  it('tears down on 404', async () => {
+  it('tears down on 404: calls cleanupListLocally and shows deleted toast', async () => {
     vi.mocked(getMeta).mockReturnValue(META)
     vi.mocked(upsertItem).mockResolvedValue({ ok: false, error: { kind: 'not-found' } })
-    const store = mockStore()
+    mockStore()
+    const toastAdd = vi.fn()
+    vi.mocked(useToastStore).mockReturnValue({ add: toastAdd } as unknown as ReturnType<typeof useToastStore>)
 
     enqueue({ kind: 'upsertItem', listId: 'list1', item: ITEM })
     await vi.runAllTimersAsync()
 
-    expect(store.deleteList).toHaveBeenCalledWith('list1')
+    expect(vi.mocked(cleanupListLocally)).toHaveBeenCalledWith('list1')
+    expect(toastAdd).toHaveBeenCalledWith(expect.stringContaining('deleted'), 'error')
   })
 
   it('drops only the affected list ops, leaves other lists intact', async () => {

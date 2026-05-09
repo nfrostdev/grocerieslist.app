@@ -109,7 +109,8 @@
   <share-sheet v-if="shareList"
                v-model:open="shareOpen"
                :list="shareList"
-               @provisioned="onProvisioned"/>
+               @provisioned="onProvisioned"
+               @deleted="onListDeleted"/>
   </div>
 </template>
 
@@ -144,6 +145,10 @@ function openShare () {
 
 function onProvisioned (newListId: string) {
   router.replace({ name: 'List', params: { id: newListId } })
+}
+
+function onListDeleted () {
+  router.replace({ name: 'Lists' })
 }
 
 function addItemToList (): void {

@@ -1,8 +1,9 @@
 import { useListsStore } from '@/stores/lists'
-import { getMeta, removeMeta } from './storage'
+import { useToastStore } from '@/stores/toast'
+import { getMeta } from './storage'
 import { upsertItem, patchList } from './transport'
 import { reconcileServerItem } from './reconcile'
-import { stopPoller } from './poll'
+import { cleanupListLocally } from './cleanup'
 import type { Op, UpsertItemResponse, PatchListResponse } from './types'
 
 const QUEUE_KEY = 'pendingOps'
@@ -45,12 +46,6 @@ function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function teardownList (listId: string): void {
-  saveQueue(loadQueue().filter(o => o.listId !== listId))
-  removeMeta(listId)
-  stopPoller(listId)
-  useListsStore().deleteList(listId)
-}
 
 async function flush (): Promise<void> {
   while (true) {
@@ -88,7 +83,15 @@ async function flush (): Promise<void> {
       result.error.kind === 'unauthorized' ||
       result.error.kind === 'not-found'
     ) {
-      teardownList(op.listId)
+      const listName = useListsStore().getListFromId(op.listId)?.n ?? 'a shared list'
+      useToastStore().add(
+        result.error.kind === 'unauthorized'
+          ? `Access to "${listName}" was revoked.`
+          : `"${listName}" was deleted.`,
+        'error'
+      )
+      saveQueue(loadQueue().filter(o => o.listId !== op.listId))
+      cleanupListLocally(op.listId)
     } else {
       await sleep(backoffMs)
       backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS)

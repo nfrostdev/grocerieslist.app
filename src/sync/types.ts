@@ -1,8 +1,15 @@
+export interface EditorToken {
+  token: string
+  hash: string
+  label: string
+}
+
 export interface SyncMeta {
   authToken: string
   role: 'owner' | 'editor'
   lastVersion: number
   label?: string
+  editorTokens?: EditorToken[]
 }
 
 export type SyncMetaMap = Record<string, SyncMeta>
@@ -43,6 +50,10 @@ export interface UpsertItemResponse {
 export interface PatchListResponse {
   name: string
   u: number
+}
+
+export interface MintTokenResponse {
+  token: string
 }
 
 export interface UpsertItemOp {

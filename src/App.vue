@@ -17,6 +17,7 @@
                   @merge="onMerge"
                   @copy="onCopy"
                   @cancel="onCancel"/>
+    <toast-container/>
     <div aria-live="polite" aria-atomic="true" class="sr-only">{{ liveMessage }}</div>
   </div>
 </template>
@@ -26,6 +27,7 @@ import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import ImportModal from '@/components/ImportModal.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
 import type List from '@/classes/List'
