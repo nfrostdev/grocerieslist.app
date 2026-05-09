@@ -137,7 +137,7 @@ const shareOpen = ref(false)
 const shareList = shallowRef<List | null>(null)
 
 watch(list, (current) => {
-  if (!current) router.replace({ name: 'Lists' })
+  if (!current && !shareOpen.value) router.replace({ name: 'Lists' })
 })
 
 function openShare () {
