@@ -71,7 +71,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
 
   await db.batch([
     db.prepare(
-      'INSERT INTO lists (id, name, u, version, schema_version, created_at) VALUES (?, ?, 0, 1, 1, ?)'
+      'INSERT INTO lists (id, name, u, version, created_at) VALUES (?, ?, 0, 1, ?)'
     ).bind(listId, body.name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
