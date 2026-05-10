@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { v4 as uuidv4 } from 'uuid'
 import type List from '@/classes/List'
 import type Item from '@/classes/Item'
 import { getMeta } from '@/sync/storage'
@@ -102,18 +101,6 @@ export const useListsStore = defineStore('lists', () => {
     persist()
   }
 
-  function importAsCopy (incoming: List) {
-    const copy: List = {
-      id: uuidv4().substring(0, 8),
-      n: incoming.n,
-      i: incoming.i
-    }
-    sortItems(copy)
-    lists.value.push(copy)
-    persist()
-    return copy.id
-  }
-
   return {
     lists,
     getListFromId,
@@ -125,7 +112,6 @@ export const useListsStore = defineStore('lists', () => {
     softDeleteItem,
     replaceList,
     mergeList,
-    updateListId,
-    importAsCopy
+    updateListId
   }
 })
