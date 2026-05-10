@@ -7,6 +7,7 @@ const CYCLE: ThemeMode[] = ['light', 'dark', 'system']
 
 const mode = ref<ThemeMode>('system')
 let mq: MediaQueryList | null = null
+let initialized = false
 
 function apply (m: ThemeMode) {
   const isDark = m === 'dark' || (m === 'system' && (mq?.matches ?? false))
@@ -31,6 +32,8 @@ function cycleMode () {
 }
 
 function init () {
+  if (initialized) return
+  initialized = true
   mq = window.matchMedia('(prefers-color-scheme: dark)')
   mq.addEventListener('change', onMediaChange)
   const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
