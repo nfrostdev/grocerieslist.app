@@ -22,7 +22,12 @@ export default defineConfig({
       }
     })
   ],
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      '@shared': path.resolve(__dirname, 'shared')
+    }
+  },
   test: {
     include: ['tests/unit/**/*.spec.{js,ts}'],
     setupFiles: ['tests/unit/setup.ts'],
@@ -31,7 +36,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/**'],
+      include: ['src/**', 'shared/**'],
       exclude: ['src/main.ts', 'src/router/**', 'src/**/*.d.ts', 'src/assets/**', 'src/sync/types.ts'],
       thresholds: {
         lines: 80,
