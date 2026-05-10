@@ -65,6 +65,6 @@
     "node": ">=22.22.1 <23"
   },
   "lint-staged": {
-    "*.{js,vue}": "eslint --fix"
+    "*.{js,ts,vue}": "eslint --fix"
   }
 }
