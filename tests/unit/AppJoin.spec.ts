@@ -1,6 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from '@/App.vue'
 
@@ -23,7 +23,7 @@ const makeRouter = () => createRouter({
   ]
 })
 
-const mountApp = async (router) => {
+const mountApp = async (router: Router) => {
   await router.push('/')
   const wrapper = mount(App, {
     global: {
@@ -40,8 +40,8 @@ describe('App.vue — handleJoinFragment', () => {
     localStorage.clear()
     window.location.hash = ''
     vi.resetAllMocks()
-    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
-    HTMLDialogElement.prototype.close = vi.fn(function () {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })
@@ -55,7 +55,7 @@ describe('App.vue — handleJoinFragment', () => {
   })
 
   it('calls join and navigates to the list on a valid fragment', async () => {
-    sync.join.mockResolvedValue(true)
+    vi.mocked(sync.join).mockResolvedValue(true)
     window.location.hash = '#join=listid123.tokenxyz'
     const router = makeRouter()
     await mountApp(router)
@@ -65,7 +65,7 @@ describe('App.vue — handleJoinFragment', () => {
   })
 
   it('navigates without calling join when list is already synced', async () => {
-    sync.getMeta.mockReturnValue({ authToken: 'tok', role: 'owner', lastCursor: 1 })
+    vi.mocked(sync.getMeta).mockReturnValue({ authToken: 'tok', role: 'owner', lastCursor: 1 })
     window.location.hash = '#join=listid123.tokenxyz'
     const router = makeRouter()
     await mountApp(router)
@@ -74,7 +74,7 @@ describe('App.vue — handleJoinFragment', () => {
   })
 
   it('stays on Lists and does not navigate when join fails', async () => {
-    sync.join.mockResolvedValue(false)
+    vi.mocked(sync.join).mockResolvedValue(false)
     window.location.hash = '#join=listid123.tokenxyz'
     const router = makeRouter()
     await mountApp(router)

@@ -14,8 +14,8 @@ const mountModal = (props = {}) => mount(ConfirmModal, {
 
 describe('ConfirmModal', () => {
   beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
-    HTMLDialogElement.prototype.close = vi.fn(function () {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })
@@ -44,21 +44,21 @@ describe('ConfirmModal', () => {
 
   it('applies primary variant by default', () => {
     const wrapper = mountModal({ confirmLabel: 'Confirm' })
-    const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
+    const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')!
     expect(confirmBtn.classes()).toContain('confirm-modal__button--primary')
     expect(confirmBtn.classes()).not.toContain('confirm-modal__button--destructive')
   })
 
   it('applies destructive variant class when variant=destructive', () => {
     const wrapper = mountModal({ variant: 'destructive', confirmLabel: 'Delete' })
-    const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Delete')
+    const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Delete')!
     expect(confirmBtn.classes()).toContain('confirm-modal__button--destructive')
     expect(confirmBtn.classes()).not.toContain('confirm-modal__button--primary')
   })
 
   it('emits confirm + update:open=false when Confirm is clicked', async () => {
     const wrapper = mountModal({ open: true })
-    await wrapper.findAll('button').find(b => b.text() === 'Confirm').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Confirm')!.trigger('click')
     expect(wrapper.emitted('confirm')).toBeTruthy()
     expect(wrapper.emitted('update:open')).toEqual([[false]])
     expect(wrapper.emitted('cancel')).toBeFalsy()
@@ -66,7 +66,7 @@ describe('ConfirmModal', () => {
 
   it('emits cancel + update:open=false when Cancel is clicked', async () => {
     const wrapper = mountModal({ open: true })
-    await wrapper.findAll('button').find(b => b.text() === 'Cancel').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
     expect(wrapper.emitted('cancel')).toBeTruthy()
     expect(wrapper.emitted('update:open')).toEqual([[false]])
     expect(wrapper.emitted('confirm')).toBeFalsy()

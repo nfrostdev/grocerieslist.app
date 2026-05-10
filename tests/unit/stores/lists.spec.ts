@@ -1,4 +1,5 @@
 import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useListsStore } from '@/stores/lists'
 import List from '@/classes/List'
 import Item from '@/classes/Item'
@@ -33,7 +34,7 @@ describe('lists store', () => {
     store.createList(new List('Groceries', []))
     expect(store.lists).toHaveLength(1)
     expect(store.lists[0].n).toBe('Groceries')
-    expect(JSON.parse(localStorage.getItem('lists'))[0].n).toBe('Groceries')
+    expect(JSON.parse(localStorage.getItem('lists') ?? '[]')[0].n).toBe('Groceries')
   })
 
   it('deleteList removes by id and persists', () => {
@@ -42,7 +43,7 @@ describe('lists store', () => {
     store.createList(list)
     store.deleteList(list.id)
     expect(store.lists).toHaveLength(0)
-    expect(JSON.parse(localStorage.getItem('lists'))).toHaveLength(0)
+    expect(JSON.parse(localStorage.getItem('lists') ?? '[]')).toHaveLength(0)
   })
 
   it('addItem sorts items alphabetically by name', () => {
@@ -69,7 +70,7 @@ describe('lists store', () => {
     const store = useListsStore()
     const list = new List('A', [])
     store.createList(list)
-    expect(store.getListFromId(list.id).n).toBe('A')
+    expect(store.getListFromId(list.id)!.n).toBe('A')
   })
 
   it('getListFromId returns undefined for unknown id', () => {

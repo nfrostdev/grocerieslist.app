@@ -31,8 +31,8 @@ describe('App.vue', () => {
   beforeEach(() => {
     localStorage.clear()
     window.location.hash = ''
-    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
-    HTMLDialogElement.prototype.close = vi.fn(function () {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })

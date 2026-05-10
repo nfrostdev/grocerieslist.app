@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createTestingPinia } from '@pinia/testing'
 import { useListsStore } from '@/stores/lists'
 import Lists from '@/views/Lists.vue'
+import type List from '@/classes/List'
 
 import * as sync from '@/sync'
 
@@ -17,7 +18,7 @@ const stubs = {
   FontAwesomeIcon: { template: '<span />' }
 }
 
-const mountLists = (lists) => mount(Lists, {
+const mountLists = (lists: List[]) => mount(Lists, {
   global: {
     plugins: [createTestingPinia({ initialState: { lists: { lists } } })],
     stubs
@@ -26,8 +27,8 @@ const mountLists = (lists) => mount(Lists, {
 
 describe('Lists.vue', () => {
   beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
-    HTMLDialogElement.prototype.close = vi.fn(function () {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })
@@ -66,7 +67,7 @@ describe('Lists.vue', () => {
     const wrapper = mountLists([{ id: 'a1', n: 'Fruit', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
-    await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Delete')!.trigger('click')
     await wrapper.vm.$nextTick()
     expect(store.deleteList).toHaveBeenCalledWith('a1')
     expect(wrapper.find('.confirm-modal').exists()).toBe(false)
@@ -78,7 +79,7 @@ describe('Lists.vue', () => {
     const wrapper = mountLists([{ id: 'srv1', n: 'Shared', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
-    await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Delete')!.trigger('click')
     await wrapper.vm.$nextTick()
     expect(sync.deleteList).toHaveBeenCalledWith('srv1')
     expect(store.deleteList).not.toHaveBeenCalled()
@@ -90,7 +91,7 @@ describe('Lists.vue', () => {
     const wrapper = mountLists([{ id: 'srv2', n: 'Joined', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
-    await wrapper.findAll('button').find(b => b.text() === 'Delete').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Delete')!.trigger('click')
     await wrapper.vm.$nextTick()
     expect(sync.leaveList).toHaveBeenCalledWith('srv2')
     expect(store.deleteList).not.toHaveBeenCalled()
@@ -101,7 +102,7 @@ describe('Lists.vue', () => {
     const wrapper = mountLists([{ id: 'a1', n: 'Fruit', i: [] }])
     const store = useListsStore()
     await wrapper.find('.list__icon--delete').trigger('click')
-    await wrapper.findAll('button').find(b => b.text() === 'Cancel').trigger('click')
+    await wrapper.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
     expect(store.deleteList).not.toHaveBeenCalled()
     expect(wrapper.find('.confirm-modal').exists()).toBe(false)
   })

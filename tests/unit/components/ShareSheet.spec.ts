@@ -16,12 +16,12 @@ vi.mock('qrcode', () => ({
 }))
 
 vi.mock('@/sync', () => ({
-  provision: (...args) => provisionMock(...args),
-  isSynced: (...args) => isSyncedMock(...args),
-  getMeta: (...args) => getMetaMock(...args),
-  enableSharing: (...args) => enableSharingMock(...args),
-  disableSharing: (...args) => disableSharingMock(...args),
-  deleteList: (...args) => deleteListMock(...args)
+  provision: (...args: unknown[]) => provisionMock(...args),
+  isSynced: (...args: unknown[]) => isSyncedMock(...args),
+  getMeta: (...args: unknown[]) => getMetaMock(...args),
+  enableSharing: (...args: unknown[]) => enableSharingMock(...args),
+  disableSharing: (...args: unknown[]) => disableSharingMock(...args),
+  deleteList: (...args: unknown[]) => deleteListMock(...args)
 }))
 
 const list = { id: 'l1', n: 'Costco', i: [{ id: 'i1', n: 'Eggs', q: '1', c: 0, u: 1, d: 0 }] }
@@ -44,8 +44,8 @@ describe('ShareSheet', () => {
     disableSharingMock.mockResolvedValue(true)
     deleteListMock.mockResolvedValue(true)
     getMetaMock.mockReturnValue(null)
-    HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true })
-    HTMLDialogElement.prototype.close = vi.fn(function () {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true })
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
       this.open = false
       this.dispatchEvent(new Event('close'))
     })
@@ -108,14 +108,14 @@ describe('ShareSheet', () => {
   it('copies URL to clipboard when Copy is clicked', async () => {
     const wrapper = mountSheet({ open: true })
     await flushPromises()
-    await wrapper.findAll('button').find(b => b.text().includes('Copy link')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Copy link'))!.trigger('click')
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(SHARE_URL)
   })
 
   it('invokes navigator.share when Share link is clicked', async () => {
     const wrapper = mountSheet({ open: true })
     await flushPromises()
-    await wrapper.findAll('button').find(b => b.text().includes('Share link')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Share link'))!.trigger('click')
     expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ url: SHARE_URL }))
   })
 
@@ -125,7 +125,7 @@ describe('ShareSheet', () => {
     const wrapper = mountSheet({ open: true })
     await flushPromises()
 
-    await wrapper.findAll('button').find(b => b.text().includes('Enable sharing')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Enable sharing'))!.trigger('click')
     await flushPromises()
 
     expect(enableSharingMock).toHaveBeenCalledWith('l1')
@@ -139,7 +139,7 @@ describe('ShareSheet', () => {
     const wrapper = mountSheet({ open: true })
     await flushPromises()
 
-    await wrapper.findAll('button').find(b => b.text().includes('Stop sharing')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Stop sharing'))!.trigger('click')
     await flushPromises()
 
     expect(disableSharingMock).toHaveBeenCalledWith('l1')
@@ -190,7 +190,7 @@ describe('ShareSheet', () => {
     })
     const wrapper = mountSheet({ open: true })
     await flushPromises()
-    await wrapper.findAll('button').find(b => b.text().includes('Copy link')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Copy link'))!.trigger('click')
     await flushPromises()
     expect(true).toBe(true)
   })
@@ -202,7 +202,7 @@ describe('ShareSheet', () => {
     })
     const wrapper = mountSheet({ open: true })
     await flushPromises()
-    await wrapper.findAll('button').find(b => b.text().includes('Share link')).trigger('click')
+    await wrapper.findAll('button').find(b => b.text().includes('Share link'))!.trigger('click')
     await flushPromises()
     expect(true).toBe(true)
   })
