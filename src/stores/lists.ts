@@ -37,6 +37,7 @@ export const useListsStore = defineStore('lists', () => {
   function createList (list: List) {
     lists.value.push(list)
     persist()
+    return list
   }
 
   function deleteList (id: string) {
