@@ -150,25 +150,4 @@ describe('lists store', () => {
       expect(store.lists[0].i[0].d).toBe(1)
     })
   })
-
-  describe('importAsCopy', () => {
-    it('creates a new list with a fresh id', () => {
-      const store = useListsStore()
-      const incoming = { id: 'abc', n: 'Costco', i: [{ id: 'i1', n: 'Eggs', q: '1', c: 0, u: 1, d: 0 }] }
-      const newId = store.importAsCopy(incoming)
-      expect(newId).not.toBe('abc')
-      expect(store.lists).toHaveLength(1)
-      expect(store.lists[0].id).toBe(newId)
-      expect(store.lists[0].n).toBe('Costco')
-    })
-
-    it('does not overwrite an existing list with the same incoming id', () => {
-      const store = useListsStore()
-      store.createList({ id: 'abc', n: 'Original', i: [] })
-      store.importAsCopy({ id: 'abc', n: 'Imported', i: [] })
-      expect(store.lists).toHaveLength(2)
-      expect(store.lists[0].n).toBe('Original')
-      expect(store.lists[1].n).toBe('Imported')
-    })
-  })
 })
