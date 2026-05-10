@@ -70,6 +70,14 @@ describe('useTheme', () => {
       init()
       expect(mockAddEventListener).toHaveBeenCalledWith('change', expect.any(Function))
     })
+
+    it('is idempotent: repeated init() calls do not re-register the listener', async () => {
+      const { init } = await freshTheme()
+      init()
+      init()
+      init()
+      expect(mockAddEventListener).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('setMode', () => {
