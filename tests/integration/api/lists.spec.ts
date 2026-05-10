@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { Miniflare } from 'miniflare'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { handleProvision, handleJoin, handlePoll, handleUpsertItem, handlePatchList, handleMintToken, handleRevokeToken, handleDeleteList } from '../../../functions/api/_shared/handlers'
+import { handleProvision, handleJoin, handlePoll, handleUpsertItem, handleMintToken, handleRevokeToken, handleDeleteList } from '../../../functions/api/_shared/handlers'
 
 const schema = readFileSync(resolve(__dirname, '../../../schema.sql'), 'utf-8')
 
@@ -445,73 +445,6 @@ describe('POST /api/lists/:id/items/:itemId', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ n: 'Milk', q: '1', c: 0, u: 1000, d: 0 })
     }), id, 'item0001')
-    expect(res.status).toBe(401)
-  })
-})
-
-// ---------------------------------------------------------------------------
-// PATCH /api/lists/:id (rename)
-// ---------------------------------------------------------------------------
-
-describe('PATCH /api/lists/:id', () => {
-  async function setup () {
-    const req = new Request('http://localhost/api/lists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Original Name', items: [] })
-    })
-    return handleProvision(db, req).then(r => r.json() as Promise<{ id: string; authToken: string }>)
-  }
-
-  function patchReq (listId: string, token: string, body: object) {
-    return new Request(`http://localhost/api/lists/${listId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body)
-    })
-  }
-
-  it('renames the list and returns canonical', async () => {
-    const { id, authToken } = await setup()
-    const res = await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
-    expect(res.status).toBe(200)
-    const body = await res.json() as { name: string; u: number }
-    expect(body.name).toBe('New Name')
-    expect(body.u).toBe(5000)
-  })
-
-  it('increments list version on rename', async () => {
-    const { id, authToken } = await setup()
-    await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
-    const body = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, { headers: { Authorization: `Bearer ${authToken}` } }), id)
-      .then(r => r.json() as Promise<{ version: number; name: string }>)
-    expect(body.version).toBe(2)
-    expect(body.name).toBe('New Name')
-  })
-
-  it('returns existing canonical on stale rename', async () => {
-    const { id, authToken } = await setup()
-    await handlePatchList(db, patchReq(id, authToken, { name: 'New Name', u: 5000 }), id)
-    const res = await handlePatchList(db, patchReq(id, authToken, { name: 'Stale Name', u: 3000 }), id)
-    expect(res.status).toBe(200)
-    const body = await res.json() as { name: string; u: number }
-    expect(body.name).toBe('New Name')
-    expect(body.u).toBe(5000)
-  })
-
-  it('returns 400 when name is missing', async () => {
-    const { id, authToken } = await setup()
-    const res = await handlePatchList(db, patchReq(id, authToken, { u: 5000 }), id)
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 401 without a token', async () => {
-    const { id } = await setup()
-    const res = await handlePatchList(db, new Request(`http://localhost/api/lists/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Hacked', u: 9999 })
-    }), id)
     expect(res.status).toBe(401)
   })
 })

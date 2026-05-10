@@ -40,11 +40,6 @@ export interface UpsertItemResponse {
   item: ItemPayload
 }
 
-export interface PatchListResponse {
-  name: string
-  u: number
-}
-
 export interface MintTokenResponse {
   token: string
 }
@@ -55,14 +50,7 @@ export interface UpsertItemOp {
   item: ItemPayload
 }
 
-export interface PatchListOp {
-  kind: 'patchList'
-  listId: string
-  name: string
-  u: number
-}
-
-export type Op = UpsertItemOp | PatchListOp
+export type Op = UpsertItemOp
 
 export type SyncError =
   | { kind: 'unauthorized' }

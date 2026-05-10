@@ -43,44 +43,6 @@ export async function handleUpsertItem (
   return Response.json({ item: incoming })
 }
 
-export async function handlePatchList (
-  db: D1Database,
-  request: Request,
-  listId: string
-): Promise<Response> {
-  const auth = await authenticate(db, request, listId)
-  if (auth instanceof Response) return auth
-
-  const parsed = await readJsonBody<{ name?: unknown; u?: unknown }>(request)
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
-  const body = parsed.body
-
-  if (typeof body.name !== 'string' || body.name.length === 0 || body.name.length > LIMITS.listNameMax) {
-    return Response.json({ error: 'name required' }, { status: 400 })
-  }
-  if (typeof body.u !== 'number' || !Number.isFinite(body.u) || body.u < 0) {
-    return Response.json({ error: 'u required' }, { status: 400 })
-  }
-
-  const list = await db.prepare(
-    'SELECT id, name, u, version FROM lists WHERE id = ?'
-  ).bind(listId).first<ListRow>()
-
-  if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
-
-  if (list.u > body.u) {
-    return Response.json({ name: list.name, u: list.u })
-  }
-
-  await db.batch([
-    db.prepare(
-      'UPDATE lists SET name = ?, u = ?, version = version + 1 WHERE id = ?'
-    ).bind(body.name, body.u, listId)
-  ])
-
-  return Response.json({ name: body.name, u: body.u })
-}
-
 export async function handleProvision (db: D1Database, request: Request): Promise<Response> {
   const parsed = await readJsonBody<{ name?: unknown; items?: unknown }>(request)
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })

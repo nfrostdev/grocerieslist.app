@@ -1,4 +1,4 @@
-import type { TransportResult, ProvisionResponse, JoinResponse, PollPayload, ItemPayload, UpsertItemResponse, PatchListResponse, MintTokenResponse } from './types'
+import type { TransportResult, ProvisionResponse, JoinResponse, PollPayload, ItemPayload, UpsertItemResponse, MintTokenResponse } from './types'
 
 function normError (status: number) {
   if (status === 401) return { kind: 'unauthorized' as const }
@@ -73,28 +73,6 @@ export async function upsertItem (
     })
     if (!res.ok) return { ok: false, error: normError(res.status) }
     return { ok: true, data: await res.json() as UpsertItemResponse }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
-}
-
-export async function patchList (
-  listId: string,
-  authToken: string,
-  name: string,
-  u: number
-): Promise<TransportResult<PatchListResponse>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ name, u })
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as PatchListResponse }
   } catch {
     return { ok: false, error: { kind: 'network' } }
   }
