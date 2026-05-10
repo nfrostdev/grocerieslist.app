@@ -30,10 +30,10 @@ const name = ref<string | null>(null)
 const newListName = ref<HTMLInputElement | null>(null)
 
 function createList (): void {
-  listsStore.createList(new List(name.value!, []))
+  const list = listsStore.createList(new List(name.value!, []))
   router.push({
     name: 'List',
-    params: { id: listsStore.lists.at(-1)!.id }
+    params: { id: list.id }
   })
 }
 
