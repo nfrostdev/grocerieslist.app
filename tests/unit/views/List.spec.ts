@@ -2,13 +2,14 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useListsStore } from '@/stores/lists'
 import ListV from '@/views/List.vue'
 
 const listId = 'test01'
 
 const makeItem = (overrides = {}) => ({
-  id: 'item1', n: 'Apples', q: 2, c: 0, d: 0, u: 0, ...overrides
+  id: 'item1', n: 'Apples', q: '2', c: 0, d: 0, u: 0, ...overrides
 })
 
 const routes = [
@@ -52,11 +53,12 @@ const mountListWithSheet = async () => {
   const router = createRouter({ history: createMemoryHistory(), routes })
   await router.push({ name: 'List', params: { id: 'local01' } })
 
-  let sheetEmit = null
+  type Emit = (event: string, ...args: unknown[]) => void
+  let sheetEmit: Emit | null = null
   const ShareSheetStub = {
     props: ['open', 'list'],
     emits: ['update:open', 'provisioned', 'deleted'],
-    setup (_, { emit }) { sheetEmit = emit; return () => null }
+    setup (_: unknown, { emit }: { emit: Emit }) { sheetEmit = emit; return () => null }
   }
 
   const wrapper = mount(ListV, {
@@ -83,8 +85,8 @@ describe('List.vue', () => {
 
   it('renders item name and quantity', async () => {
     const { wrapper } = await mountList()
-    expect(wrapper.find('.item__name').element.value).toBe('Apples')
-    expect(wrapper.find('.item__quantity__input').element.value).toBe('2')
+    expect((wrapper.find('.item__name').element as HTMLInputElement).value).toBe('Apples')
+    expect((wrapper.find('.item__quantity__input').element as HTMLInputElement).value).toBe('2')
   })
 
   it('shows empty-state when there are no active items', async () => {
@@ -154,8 +156,8 @@ describe('List.vue', () => {
       await nextTick()
 
       // Simulate ShareSheet emitting provisioned then closing (as onClose does)
-      sheetEmit()('provisioned', 'SERVER01')
-      sheetEmit()('update:open', false)
+      sheetEmit()!('provisioned', 'SERVER01')
+      sheetEmit()!('update:open', false)
       await flushPromises()
 
       expect(router.currentRoute.value.name).toBe('List')

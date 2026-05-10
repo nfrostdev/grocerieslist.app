@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { describe, it, expect, vi } from 'vitest'
 import { useListsStore } from '@/stores/lists'
 import New from '@/views/New.vue'
 
