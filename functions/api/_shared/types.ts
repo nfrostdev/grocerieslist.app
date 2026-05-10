@@ -7,7 +7,6 @@ export interface ListRow {
   name: string
   u: number
   version: number
-  schema_version: number
 }
 
 export interface ItemRow {
