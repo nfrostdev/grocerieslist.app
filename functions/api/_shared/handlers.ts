@@ -1,6 +1,7 @@
 import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken } from './ulid'
-import { hashToken, authenticate } from './auth'
+import { authenticate } from './auth'
+import { hashToken } from '../../../shared/crypto'
 import { LIMITS, readJsonBody, validateItem } from './validate'
 
 const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000

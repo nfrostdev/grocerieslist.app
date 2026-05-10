@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hashToken } from '@/sync/crypto'
+import { hashToken } from '@shared/crypto'
 
 describe('hashToken', () => {
   it('returns a non-empty base64url string', async () => {
