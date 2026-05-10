@@ -94,6 +94,60 @@ describe('POST /api/lists', () => {
     const res = await handleProvision(db, req)
     expect(res.status).toBe(400)
   })
+
+  it('returns 400 when an item has wrong types', async () => {
+    const cases: object[] = [
+      { id: 'abc12345', n: 'Milk', q: 1, c: 0, u: 1000, d: 0 }, // q non-string
+      { id: 'abc12345', n: 'Milk', q: '1', c: 'yes', u: 1000, d: 0 }, // c non-number
+      { id: 'abc12345', n: 'Milk', q: '1', c: 0, u: '1000', d: 0 }, // u non-number
+      { id: 'abc12345', n: 'Milk', q: '1', c: 0, u: 1000, d: 2 }, // d out of range
+      { id: '', n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }, // id empty
+      { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 } // id missing
+    ]
+    for (const item of cases) {
+      const req = new Request('http://localhost/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'X', items: [item] })
+      })
+      const res = await handleProvision(db, req)
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('returns 400 when an item name exceeds max length', async () => {
+    const item = { id: 'abc12345', n: 'a'.repeat(501), q: '', c: 0, u: 1000, d: 0 }
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'X', items: [item] })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when items array exceeds cap', async () => {
+    const items = Array.from({ length: 1001 }, (_, i) => ({
+      id: `id${i.toString().padStart(6, '0')}`, n: 'x', q: '', c: 0, u: 1, d: 0
+    }))
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'X', items })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 413 when content-length exceeds cap', async () => {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': String(2 * 1024 * 1024) },
+      body: JSON.stringify({ name: 'X', items: [] })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(413)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -356,6 +410,31 @@ describe('POST /api/lists/:id/items/:itemId', () => {
   it('returns 400 when n is missing', async () => {
     const { id, authToken } = await setup()
     const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { q: '1', u: 1000 }), id, 'item0001')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when q is wrong type', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: 5, c: 0, u: 1000, d: 0 }), id, 'item0001')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when c is out of range', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 2, u: 1000, d: 0 }), id, 'item0001')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when n exceeds max length', async () => {
+    const { id, authToken } = await setup()
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'a'.repeat(501), q: '', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when itemId path param exceeds max length', async () => {
+    const { id, authToken } = await setup()
+    const longId = 'a'.repeat(65)
+    const res = await handleUpsertItem(db, upsertReq(id, longId, authToken, { n: 'Milk', q: '', c: 0, u: 1000, d: 0 }), id, longId)
     expect(res.status).toBe(400)
   })
 
