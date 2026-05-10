@@ -1,6 +1,7 @@
 import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken } from './ulid'
 import { hashToken, authenticate } from './auth'
+import { LIMITS, readJsonBody, validateItem } from './validate'
 
 const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
@@ -13,24 +14,12 @@ export async function handleUpsertItem (
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
 
-  let body: { n?: unknown; q?: unknown; c?: unknown; u?: unknown; d?: unknown }
-  try {
-    body = await request.json() as typeof body
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const parsed = await readJsonBody<Record<string, unknown>>(request)
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
 
-  if (typeof body.n !== 'string' || typeof body.u !== 'number') {
-    return Response.json({ error: 'n and u required' }, { status: 400 })
-  }
-
-  const incoming: ItemRow = {
-    id: itemId,
-    n: body.n,
-    q: typeof body.q === 'string' ? body.q : '',
-    c: typeof body.c === 'number' ? body.c : 0,
-    u: body.u,
-    d: typeof body.d === 'number' ? body.d : 0
+  const incoming = validateItem({ ...parsed.body, id: itemId })
+  if (incoming === null) {
+    return Response.json({ error: 'invalid item' }, { status: 400 })
   }
 
   const existing = await db.prepare(
@@ -62,15 +51,15 @@ export async function handlePatchList (
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
 
-  let body: { name?: unknown; u?: unknown }
-  try {
-    body = await request.json() as typeof body
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const parsed = await readJsonBody<{ name?: unknown; u?: unknown }>(request)
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body
 
-  if (typeof body.name !== 'string' || typeof body.u !== 'number') {
-    return Response.json({ error: 'name and u required' }, { status: 400 })
+  if (typeof body.name !== 'string' || body.name.length === 0 || body.name.length > LIMITS.listNameMax) {
+    return Response.json({ error: 'name required' }, { status: 400 })
+  }
+  if (typeof body.u !== 'number' || !Number.isFinite(body.u) || body.u < 0) {
+    return Response.json({ error: 'u required' }, { status: 400 })
   }
 
   const list = await db.prepare(
@@ -93,18 +82,25 @@ export async function handlePatchList (
 }
 
 export async function handleProvision (db: D1Database, request: Request): Promise<Response> {
-  let body: { name?: unknown; items?: unknown }
-  try {
-    body = await request.json() as { name?: unknown; items?: unknown }
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const parsed = await readJsonBody<{ name?: unknown; items?: unknown }>(request)
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body
 
-  if (!body.name || typeof body.name !== 'string') {
+  if (typeof body.name !== 'string' || body.name.length === 0 || body.name.length > LIMITS.listNameMax) {
     return Response.json({ error: 'name required' }, { status: 400 })
   }
 
-  const items = Array.isArray(body.items) ? body.items as ItemRow[] : []
+  const rawItems = Array.isArray(body.items) ? body.items : []
+  if (rawItems.length > LIMITS.itemsMax) {
+    return Response.json({ error: 'too many items' }, { status: 400 })
+  }
+  const items: ItemRow[] = []
+  for (const raw of rawItems) {
+    const item = validateItem(raw)
+    if (item === null) return Response.json({ error: 'invalid item' }, { status: 400 })
+    items.push(item)
+  }
+
   const listId = generateUlid()
   const authToken = generateToken()
   const tokenHash = await hashToken(authToken)
@@ -117,10 +113,10 @@ export async function handleProvision (db: D1Database, request: Request): Promis
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
     ).bind(tokenHash, listId, 'owner', now),
-    ...items.map((item: ItemRow) =>
+    ...items.map((item) =>
       db.prepare(
         'INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(listId, item.id, item.n, item.q, item.c ?? 0, item.u ?? now, item.d ?? 0)
+      ).bind(listId, item.id, item.n, item.q, item.c, item.u, item.d)
     )
   ])
 
@@ -168,14 +164,11 @@ export async function handleJoin (
   request: Request,
   listId: string
 ): Promise<Response> {
-  let body: { token?: unknown }
-  try {
-    body = await request.json() as { token?: unknown }
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const parsed = await readJsonBody<{ token?: unknown }>(request)
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body
 
-  if (!body.token || typeof body.token !== 'string') {
+  if (!body.token || typeof body.token !== 'string' || body.token.length > 256) {
     return Response.json({ error: 'token required' }, { status: 400 })
   }
 
