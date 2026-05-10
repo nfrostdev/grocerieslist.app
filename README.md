@@ -1,6 +1,6 @@
 # grocerieslist.app
 
-PWA grocery list with live sync, hosted on Cloudflare Pages. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 7, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
+PWA grocery list with live sync, hosted on Cloudflare Pages. Built with Vue 3.5, Vue Router 5, Pinia 3, Vite 8, Vitest 4, Tailwind 4, TypeScript 6, and vite-plugin-pwa.
 
 ## Sharing
 
@@ -22,8 +22,10 @@ nvm use && npm ci
 | `npm run test:unit` | Run unit tests once |
 | `npm run test:watch` | Run unit tests in watch mode |
 | `npm run test:coverage` | Run unit tests with coverage report |
+| `npm run test:integration` | Run integration tests against a wrangler D1 dev DB |
 | `npm run lint` | Lint and fix files |
 | `npm run preview` | Preview production build locally |
+| `npm run dev:pages` | Serve the built `dist/` via `wrangler pages dev` |
 | `npm run test:e2e` | Run Playwright e2e tests (includes axe accessibility checks) |
 
 ## Accessibility
