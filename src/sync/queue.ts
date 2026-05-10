@@ -1,10 +1,10 @@
 import { useListsStore } from '@/stores/lists'
 import { useToastStore } from '@/stores/toast'
 import { getMeta } from './storage'
-import { upsertItem, patchList } from './transport'
+import { upsertItem } from './transport'
 import { reconcileServerItem } from './reconcile'
 import { cleanupListLocally } from './cleanup'
-import type { Op, UpsertItemResponse, PatchListResponse } from './types'
+import type { Op } from './types'
 
 const QUEUE_KEY = 'pendingOps'
 const MAX_BACKOFF_MS = 60_000
@@ -62,21 +62,11 @@ async function flush (): Promise<void> {
       continue
     }
 
-    const result = op.kind === 'upsertItem'
-      ? await upsertItem(op.listId, op.item.id, meta.authToken, op.item)
-      : await patchList(op.listId, meta.authToken, op.name, op.u)
+    const result = await upsertItem(op.listId, op.item.id, meta.authToken, op.item)
 
     if (result.ok) {
       backoffMs = 1_000
-      if (op.kind === 'upsertItem') {
-        reconcileServerItem(op.listId, (result.data as UpsertItemResponse).item)
-      } else {
-        const store = useListsStore()
-        const list = store.getListFromId(op.listId)
-        if (list) {
-          list.n = (result.data as PatchListResponse).name
-        }
-      }
+      reconcileServerItem(op.listId, result.data.item)
       saveQueue(loadQueue().slice(1))
     } else if (
       result.error.kind === 'unauthorized' ||

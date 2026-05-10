@@ -14,8 +14,7 @@ vi.mock('@/sync/storage', () => ({
 }))
 
 vi.mock('@/sync/transport', () => ({
-  upsertItem: vi.fn(),
-  patchList: vi.fn()
+  upsertItem: vi.fn()
 }))
 
 vi.mock('@/sync/reconcile', () => ({
