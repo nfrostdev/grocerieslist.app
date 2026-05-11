@@ -1,5 +1,5 @@
 <template>
-  <div class="toast-container" aria-live="assertive" aria-atomic="false">
+  <div class="toast-container">
     <div v-for="toast in toastStore.toasts"
          :key="toast.id"
          class="toast"

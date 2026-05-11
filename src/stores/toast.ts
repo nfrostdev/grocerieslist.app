@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { useLiveRegion } from '@/composables/useLiveRegion'
 
 interface Toast {
   id: number
@@ -14,6 +15,7 @@ export const useToastStore = defineStore('toast', () => {
   function add (message: string, type: Toast['type'] = 'info'): void {
     const id = nextId++
     toasts.value.push({ id, message, type })
+    useLiveRegion().announce(message)
     setTimeout(() => dismiss(id), 5000)
   }
 
