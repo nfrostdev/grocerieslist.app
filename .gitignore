@@ -24,3 +24,4 @@ pnpm-debug.log*
 /playwright-report
 /test-results
 /.wrangler
+worker-configuration.d.ts
