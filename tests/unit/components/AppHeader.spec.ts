@@ -19,4 +19,10 @@ describe('AppHeader.vue', () => {
   it('renders the New List link', () => {
     expect(wrapper.text()).toContain('New List')
   })
+
+  it('exposes the theme toggle as an unpressed-agnostic button', () => {
+    const toggle = wrapper.get('button.header__theme-toggle')
+    expect(toggle.attributes('aria-label')).toMatch(/^Switch to (light|dark|system) mode$/)
+    expect(toggle.attributes('aria-pressed')).toBeUndefined()
+  })
 })
