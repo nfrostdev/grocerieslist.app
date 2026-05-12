@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type Item from './Item'
 
 export default class List {
@@ -7,7 +6,7 @@ export default class List {
   i: Item[]
 
   constructor (name: string, items: Item[]) {
-    this.id = uuidv4().substring(0, 8)
+    this.id = crypto.randomUUID()
     this.n = name
     this.i = items
   }

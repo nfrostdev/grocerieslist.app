@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
-
 export default class Item {
   id: string
   n: string
@@ -9,7 +7,7 @@ export default class Item {
   d: number
 
   constructor (name: string, quantity: string) {
-    this.id = uuidv4().substring(0, 8)
+    this.id = crypto.randomUUID()
     this.n = name
     this.q = quantity
     this.c = 0
