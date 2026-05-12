@@ -52,15 +52,14 @@ export const useListsStore = defineStore('lists', () => {
   }
 
   function updateItem (listId: string, itemId: string, patch: Partial<Item>) {
+    let updated: Item | undefined
     writeList(listId, l => {
-      const item = l.i.find(i => i.id === itemId)
-      if (!item) return
-      Object.assign(item, patch, { u: Date.now() })
+      updated = l.i.find(i => i.id === itemId)
+      if (!updated) return
+      Object.assign(updated, patch, { u: Date.now() })
     })
-    if (getMeta(listId)) {
-      const list = lists.value.find(l => l.id === listId)
-      const item = list?.i.find(i => i.id === itemId)
-      if (item) enqueue({ kind: 'upsertItem', listId, item: { id: item.id, n: item.n, q: item.q, c: item.c, u: item.u, d: item.d } })
+    if (updated && getMeta(listId)) {
+      enqueue({ kind: 'upsertItem', listId, item: { id: updated.id, n: updated.n, q: updated.q, c: updated.c, u: updated.u, d: updated.d } })
     }
   }
 
