@@ -14,7 +14,6 @@
       <button
         class="header__theme-toggle"
         :aria-label="`Switch to ${nextMode} mode`"
-        :aria-pressed="false"
         @click="cycleMode"
       >
         <font-awesome-icon :icon="modeIcon"/>
