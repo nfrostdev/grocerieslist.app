@@ -11,20 +11,9 @@
     <link rel="icon" href="/icon.svg">
     <link rel="apple-touch-icon" href="/img/icons/apple-touch-icon.png">
     <title>Groceries List</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/theme-init.js"></script>
 </head>
 <body>
-<script>
-  (function () {
-    var m = localStorage.getItem('theme-mode');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (m === 'dark' || (m !== 'light' && prefersDark)) {
-      document.documentElement.classList.add('dark');
-    }
-  })();
-</script>
 <noscript>
     <strong>We're sorry but Groceries List doesn't work properly without JavaScript enabled.
         Please enable it to continue.</strong>
