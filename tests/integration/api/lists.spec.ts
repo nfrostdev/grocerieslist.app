@@ -601,9 +601,10 @@ describe('DELETE /api/lists/:id', () => {
     expect(res.status).toBe(401)
   })
 
-  it('tombstone GC — removes d=1 items older than 30 days on write', async () => {
+  it('tombstone sweep — removes d=1 items older than 90 days, keeps newer tombstones and live items', async () => {
     const { id, authToken } = await setup()
-    const ninetyOneDaysAgo = Date.now() - 91 * 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const ttlMs = 90 * 24 * 60 * 60 * 1000
 
     const upsertReq = (itemId: string, item: object) => new Request(`http://localhost/api/lists/${id}/items/${itemId}`, {
       method: 'POST',
@@ -611,18 +612,20 @@ describe('DELETE /api/lists/:id', () => {
       body: JSON.stringify(item)
     })
 
-    // Insert old tombstone
-    await handleUpsertItem(db, upsertReq('tombstone1', { n: 'Old Item', q: '1', c: 0, u: ninetyOneDaysAgo, d: 1 }), id, 'tombstone1')
-    // Write a new item to trigger GC
-    await handleUpsertItem(db, upsertReq('item0002', { n: 'New Item', q: '2', c: 0, u: Date.now(), d: 0 }), id, 'item0002')
+    await handleUpsertItem(db, upsertReq('old-tomb', { n: 'Old', q: '1', c: 0, u: now - 91 * 24 * 60 * 60 * 1000, d: 1 }), id, 'old-tomb')
+    await handleUpsertItem(db, upsertReq('new-tomb', { n: 'Recent', q: '1', c: 0, u: now - 24 * 60 * 60 * 1000, d: 1 }), id, 'new-tomb')
+    await handleUpsertItem(db, upsertReq('live', { n: 'Live', q: '1', c: 0, u: now, d: 0 }), id, 'live')
 
-    // Poll — old tombstone should be gone
+    // Execute the same DELETE the nightly GH Actions workflow runs.
+    await db.prepare('DELETE FROM items WHERE d = 1 AND u < ?').bind(now - ttlMs).run()
+
     const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
     const body = await handlePoll(db, pollReq, id).then(r => r.json() as Promise<{ items: Array<{ id: string }> }>)
     const ids = body.items.map(i => i.id)
-    expect(ids).not.toContain('tombstone1')
-    expect(ids).toContain('item0002')
+    expect(ids).not.toContain('old-tomb')
+    expect(ids).toContain('new-tomb')
+    expect(ids).toContain('live')
   })
 })

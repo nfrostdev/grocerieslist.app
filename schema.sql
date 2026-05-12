@@ -29,3 +29,4 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 CREATE INDEX IF NOT EXISTS items_by_version ON items(list_id, u);
+CREATE INDEX IF NOT EXISTS items_by_tombstone ON items(d, u);

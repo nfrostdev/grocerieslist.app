@@ -4,8 +4,6 @@ import { authenticate } from './auth'
 import { hashToken } from '../../../shared/crypto'
 import { LIMITS, readJsonBody, validateItem } from './validate'
 
-const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
-
 export async function handleUpsertItem (
   db: D1Database,
   request: Request,
@@ -37,8 +35,7 @@ export async function handleUpsertItem (
        ON CONFLICT(list_id, id) DO UPDATE
        SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
     ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d),
-    db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId),
-    db.prepare('DELETE FROM items WHERE list_id = ? AND d = 1 AND u < ?').bind(listId, Date.now() - TOMBSTONE_TTL_MS)
+    db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId)
   ])
 
   return Response.json({ item: incoming })
