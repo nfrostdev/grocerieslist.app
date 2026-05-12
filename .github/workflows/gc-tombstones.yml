@@ -1,0 +1,32 @@
+name: gc-tombstones
+
+# Nightly sweep of soft-deleted items past their 90-day TTL.
+# Moved out of the upsert write path — see GitHub Issue #39.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete tombstoned items older than 90 days
+        env:
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          cutoff=$(( $(date +%s%3N) - 7776000000 ))  # now - 90 days, in ms
+          response=$(curl -fsS -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${DATABASE_ID}/query" \
+            -H "Authorization: Bearer ${API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"sql\":\"DELETE FROM items WHERE d = 1 AND u < ?\",\"params\":[\"${cutoff}\"]}")
+          echo "$response"
+          echo "$response" | grep -q '"success":true'
