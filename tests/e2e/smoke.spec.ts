@@ -20,7 +20,7 @@ test('smoke: critical path', async ({ page }) => {
   // Create list named "Test"
   await page.getByPlaceholder('List Name').fill('Test')
   await page.getByRole('button', { name: 'Create' }).click()
-  await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
+  await expect(page).toHaveURL(/\/[a-f0-9-]{36}$/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Test')
 
   // Add item "Apples" qty 3
@@ -54,7 +54,7 @@ test('a11y: List route — initial state', async ({ page }) => {
   await page.goto('/new')
   await page.getByPlaceholder('List Name').fill('A11y Test')
   await page.getByRole('button', { name: 'Create' }).click()
-  await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
+  await expect(page).toHaveURL(/\/[a-f0-9-]{36}$/)
   // Wait for route transition to complete before axe scans
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('A11y Test')
   await checkA11y(page)
@@ -85,7 +85,7 @@ test('a11y: Lists route — after creating a list', async ({ page }) => {
   await page.goto('/new')
   await page.getByPlaceholder('List Name').fill('A11y Test')
   await page.getByRole('button', { name: 'Create' }).click()
-  await expect(page).toHaveURL(/\/[a-f0-9]{8}$/)
+  await expect(page).toHaveURL(/\/[a-f0-9-]{36}$/)
   await page.getByRole('link', { name: 'My Lists' }).click()
   await expect(page).toHaveURL('/')
   await expect(page.getByRole('link', { name: /A11y Test/ })).toBeVisible()
