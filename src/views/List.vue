@@ -131,7 +131,8 @@ function addItemToList (): void {
 
 function modifyItemQuantity (event: Event, id: string): void {
   const input = event.target as HTMLInputElement
-  const item = list.value!.i.find(i => i.id === id)!
+  const item = list.value!.i.find(i => i.id === id)
+  if (!item) return
   if (input.value && !isNaN(Number(input.value))) {
     listsStore.updateItem(listId.value, id, { q: input.value })
   } else {

@@ -132,6 +132,14 @@ describe('List.vue', () => {
     expect(store.lists[0].i[0].q).toBe('5')
   })
 
+  it('does not crash if the quantity-change event fires for a missing item id', async () => {
+    const { wrapper, store } = await mountList()
+    const qtyInput = wrapper.find('.item__quantity__input')
+    // Remove the underlying item between the input event and the change handler.
+    store.$patch({ lists: [{ id: listId, n: 'Groceries', i: [] }] })
+    expect(() => qtyInput.element.dispatchEvent(new Event('change'))).not.toThrow()
+  })
+
   it('shows the all-checked banner when every active item is checked', async () => {
     const { wrapper } = await mountList([makeItem({ c: 1 })])
     expect(wrapper.text()).toContain('checked off all your items')
