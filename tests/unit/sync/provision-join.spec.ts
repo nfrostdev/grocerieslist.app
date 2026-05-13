@@ -95,7 +95,7 @@ describe('sync/index — join', () => {
   })
 
   it('applies payload, saves meta, starts poller, and returns true', async () => {
-    const data = { listId: 'list2', role: 'editor' as const, name: 'Shared', cursor: 1700, items: [] }
+    const data = { listId: 'list2', role: 'editor' as const, name: 'Shared', version: 1, cursor: 1700, items: [] }
     mJoinList.mockResolvedValue({ ok: true, data })
 
     expect(await join('list2', 'tok2')).toBe(true)

@@ -32,6 +32,7 @@ export interface JoinResponse {
   listId: string
   role: 'owner' | 'editor'
   name: string
+  version: number
   cursor: number
   items: ItemPayload[]
 }
