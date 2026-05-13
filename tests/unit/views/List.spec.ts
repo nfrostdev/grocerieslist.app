@@ -140,6 +140,15 @@ describe('List.vue', () => {
     expect(() => qtyInput.element.dispatchEvent(new Event('change'))).not.toThrow()
   })
 
+  it('reverts to the previous quantity when input is whitespace-only', async () => {
+    const { wrapper, store } = await mountList()
+    const qtyInput = wrapper.find<HTMLInputElement>('.item__quantity__input')
+    await qtyInput.setValue('   ')
+    await qtyInput.trigger('change')
+    expect(store.lists[0].i[0].q).toBe('2')
+    expect(qtyInput.element.value).toBe('2')
+  })
+
   it('shows the all-checked banner when every active item is checked', async () => {
     const { wrapper } = await mountList([makeItem({ c: 1 })])
     expect(wrapper.text()).toContain('checked off all your items')

@@ -133,8 +133,9 @@ function modifyItemQuantity (event: Event, id: string): void {
   const input = event.target as HTMLInputElement
   const item = list.value!.i.find(i => i.id === id)
   if (!item) return
-  if (input.value && !isNaN(Number(input.value))) {
-    listsStore.updateItem(listId.value, id, { q: input.value })
+  const trimmed = input.value.trim()
+  if (trimmed !== '' && !isNaN(Number(trimmed))) {
+    listsStore.updateItem(listId.value, id, { q: trimmed })
   } else {
     input.value = item.q
   }
