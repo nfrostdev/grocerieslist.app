@@ -218,7 +218,7 @@ onMounted(async () => {
   }
 
   &__button {
-    @apply relative bg-gl-lightgreen px-3 py-2 rounded transition duration-200 ease-in-out border border-gl-green outline-none text-gray-800;
+    @apply relative bg-gl-lightgreen px-3 py-2 rounded transition duration-200 ease-in-out border border-gl-green outline-none text-gray-800 font-medium;
     @apply dark:bg-gl-green dark:border-gl-lightgreen dark:text-gray-200;
 
     &:hover, &:focus {

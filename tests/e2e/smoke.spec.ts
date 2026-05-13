@@ -2,6 +2,10 @@ import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 async function checkA11y (page: Page) {
+  // Webfonts must be settled before axe samples computed colors — un-hinted
+  // fallback glyphs have wider AA fringes that can blend into bg and trip
+  // color-contrast under parallel load. See #87.
+  await page.evaluate(() => document.fonts.ready)
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()
