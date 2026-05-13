@@ -6,38 +6,42 @@ function normError (status: number) {
   return { kind: 'server' as const, status }
 }
 
+async function request<T> (
+  input: string,
+  init: Parameters<typeof fetch>[1],
+  opts: { parseJson?: boolean } = {}
+): Promise<TransportResult<T>> {
+  const { parseJson = true } = opts
+  try {
+    const res = await fetch(input, init)
+    if (!res.ok) return { ok: false, error: normError(res.status) }
+    const data = parseJson ? await res.json() as T : {} as T
+    return { ok: true, data }
+  } catch {
+    return { ok: false, error: { kind: 'network' } }
+  }
+}
+
 export async function provisionList (
   name: string,
   items: ItemPayload[]
 ): Promise<TransportResult<ProvisionResponse>> {
-  try {
-    const res = await fetch('/api/lists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, items })
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as ProvisionResponse }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<ProvisionResponse>('/api/lists', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, items })
+  })
 }
 
 export async function joinList (
   listId: string,
   token: string
 ): Promise<TransportResult<JoinResponse>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as JoinResponse }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<JoinResponse>(`/api/lists/${listId}/join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
 }
 
 export async function pollList (
@@ -45,15 +49,9 @@ export async function pollList (
   authToken: string,
   since: number
 ): Promise<TransportResult<PollPayload>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}?since=${since}`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as PollPayload }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<PollPayload>(`/api/lists/${listId}?since=${since}`, {
+    headers: { Authorization: `Bearer ${authToken}` }
+  })
 }
 
 export async function upsertItem (
@@ -62,66 +60,42 @@ export async function upsertItem (
   authToken: string,
   item: ItemPayload
 ): Promise<TransportResult<UpsertItemResponse>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}/items/${itemId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`
-      },
-      body: JSON.stringify(item)
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as UpsertItemResponse }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<UpsertItemResponse>(`/api/lists/${listId}/items/${itemId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`
+    },
+    body: JSON.stringify(item)
+  })
 }
 
 export async function mintToken (
   listId: string,
   authToken: string
 ): Promise<TransportResult<MintTokenResponse>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}/tokens`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: await res.json() as MintTokenResponse }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<MintTokenResponse>(`/api/lists/${listId}/tokens`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authToken}` }
+  })
 }
 
 export async function revokeToken (
   listId: string,
   authToken: string
 ): Promise<TransportResult<Record<string, never>>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}/tokens/revoke`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: {} as Record<string, never> }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<Record<string, never>>(`/api/lists/${listId}/tokens/revoke`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${authToken}` }
+  }, { parseJson: false })
 }
 
 export async function deleteListRequest (
   listId: string,
   authToken: string
 ): Promise<TransportResult<Record<string, never>>> {
-  try {
-    const res = await fetch(`/api/lists/${listId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    if (!res.ok) return { ok: false, error: normError(res.status) }
-    return { ok: true, data: {} as Record<string, never> }
-  } catch {
-    return { ok: false, error: { kind: 'network' } }
-  }
+  return request<Record<string, never>>(`/api/lists/${listId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${authToken}` }
+  }, { parseJson: false })
 }
