@@ -41,6 +41,13 @@ function init () {
   apply(mode.value)
 }
 
+function cleanup () {
+  if (!initialized) return
+  mq?.removeEventListener('change', onMediaChange)
+  mq = null
+  initialized = false
+}
+
 export function useTheme () {
-  return { mode: readonly(mode), setMode, cycleMode, init }
+  return { mode: readonly(mode), setMode, cycleMode, init, cleanup }
 }

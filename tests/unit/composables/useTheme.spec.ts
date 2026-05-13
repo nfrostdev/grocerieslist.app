@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 let mockMatches = false
 const mockAddEventListener = vi.fn()
+const mockRemoveEventListener = vi.fn()
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -9,7 +10,7 @@ Object.defineProperty(window, 'matchMedia', {
     matches: mockMatches,
     media: query,
     addEventListener: mockAddEventListener,
-    removeEventListener: vi.fn(),
+    removeEventListener: mockRemoveEventListener,
     dispatchEvent: vi.fn()
   }))
 })
@@ -26,6 +27,7 @@ describe('useTheme', () => {
     document.documentElement.classList.remove('dark')
     mockMatches = false
     mockAddEventListener.mockClear()
+    mockRemoveEventListener.mockClear()
   })
 
   describe('init', () => {
@@ -77,6 +79,30 @@ describe('useTheme', () => {
       init()
       init()
       expect(mockAddEventListener).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('cleanup', () => {
+    it('removes the matchMedia listener registered by init()', async () => {
+      const { init, cleanup } = await freshTheme()
+      init()
+      const [, handler] = mockAddEventListener.mock.calls[0]
+      cleanup()
+      expect(mockRemoveEventListener).toHaveBeenCalledWith('change', handler)
+    })
+
+    it('is a no-op when init() was never called', async () => {
+      const { cleanup } = await freshTheme()
+      cleanup()
+      expect(mockRemoveEventListener).not.toHaveBeenCalled()
+    })
+
+    it('allows init() to re-register after cleanup (e.g. HMR)', async () => {
+      const { init, cleanup } = await freshTheme()
+      init()
+      cleanup()
+      init()
+      expect(mockAddEventListener).toHaveBeenCalledTimes(2)
     })
   })
 

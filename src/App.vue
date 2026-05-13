@@ -28,7 +28,7 @@ const router = useRouter()
 const listsStore = useListsStore()
 const loaded = ref(false)
 const { message: liveMessage, announce } = useLiveRegion()
-const { init: initTheme } = useTheme()
+const { init: initTheme, cleanup: cleanupTheme } = useTheme()
 
 async function handleJoinFragment () {
   const m = /^#join=([^.]+)\.(.+)$/.exec(window.location.hash)
@@ -61,6 +61,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('hashchange', handleJoinFragment)
+  cleanupTheme()
 })
 </script>
 
