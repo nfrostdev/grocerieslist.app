@@ -28,84 +28,33 @@
     </form>
 
     <!-- Only display the list items if they are present and not all soft deleted. -->
-    <div
-      v-if=" list.i.length !== 0 &&
-      list.i.filter(item => item.d).length !== list.i.length"
-      class="items">
-      <div
-        v-if="list.i.filter(i => !i.d && !i.c).length === 0"
-        class="all-checked">😃 You've checked off all your items, nice!
+    <div v-if="hasAnyItems" class="items">
+      <div v-if="pendingItems.length === 0" class="all-checked">
+        😃 You've checked off all your items, nice!
       </div>
-      <div v-for="item in list.i.filter(i => !i.d && !i.c)" :key="item.id">
-        <div class="item">
-          <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
-          <div class="item__checkbox-wrap">
-            <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
-                   @input="toggleItemCheckedStatus(item.id)"
-                   class="item__checkbox"/>
-            <font-awesome-icon icon="check" class="item__checkbox__icon"/>
-          </div>
-          <div class="item__container">
-            <div class="item__quantity">
-              <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-              <input type="text" inputmode="decimal"
-                     :id="`item-qty-${item.id}`"
-                     :value="item.q"
-                     class="item__quantity__input"
-                     @change="modifyItemQuantity($event, item.id)"/>
-            </div>
-            <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
-            <input type="text"
-                   :id="`item-name-${item.id}`"
-                   :value="item.n"
-                   :ref="setItemNameRef(item.id)"
-                   class="item__name"
-                   @change="modifyItemName($event, item.id)"/>
-            <button @click="deleteItem(item.id)"
-                    :aria-label="`Remove ${item.n} from this list`"
-                    class="item__icon--delete">
-              <font-awesome-icon icon="times-circle"/>
-            </button>
-          </div>
-        </div>
-      </div>
+      <list-item v-for="item in pendingItems"
+                 :key="item.id"
+                 :item="item"
+                 :checked="false"
+                 :name-ref="setItemNameRef(item.id)"
+                 @toggle="toggleItemCheckedStatus(item.id)"
+                 @delete="deleteItem(item.id)"
+                 @update:name="modifyItemName($event, item.id)"
+                 @update:quantity="modifyItemQuantity($event, item.id)"/>
 
-      <h2 v-if="list.i.filter(i => !i.d && i.c === 1).length" class="items__h2">Checked Items</h2>
-      <div v-for="item in list.i.filter(i => !i.d && i.c === 1)" :key="item.id" class="items__checked">
-        <div class="item">
-          <label :for="`item-checkbox-${item.id}`" class="sr-only">{{ item.n }} Checked</label>
-          <div class="item__checkbox-wrap">
-            <input type="checkbox" :id="`item-checkbox-${item.id}`" :checked="!!item.c"
-                   @input="toggleItemCheckedStatus(item.id)"
-                   class="item__checkbox"/>
-            <font-awesome-icon icon="check" class="item__checkbox__icon item__checkbox__icon--checked"/>
-          </div>
-          <div class="item__container">
-            <div class="item__quantity">
-              <label :for="`item-qty-${item.id}`" class="sr-only">{{ item.n }} Quantity</label>
-              <input type="text" inputmode="decimal"
-                     :id="`item-qty-${item.id}`"
-                     :value="item.q"
-                     class="item__quantity__input"
-                     @change="modifyItemQuantity($event, item.id)"/>
-            </div>
-            <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
-            <input type="text"
-                   :id="`item-name-${item.id}`"
-                   :value="item.n"
-                   :ref="setItemNameRef(item.id)"
-                   class="item__name"
-                   @change="modifyItemName($event, item.id)"/>
-            <button @click="deleteItem(item.id)"
-                    :aria-label="`Remove ${item.n} from this list`"
-                    class="item__icon--delete">
-              <font-awesome-icon icon="times-circle"/>
-            </button>
-          </div>
-        </div>
-      </div>
+      <h2 v-if="checkedItems.length" class="items__h2">Checked Items</h2>
+      <list-item v-for="item in checkedItems"
+                 :key="item.id"
+                 :item="item"
+                 :checked="true"
+                 :name-ref="setItemNameRef(item.id)"
+                 class="items__checked"
+                 @toggle="toggleItemCheckedStatus(item.id)"
+                 @delete="deleteItem(item.id)"
+                 @update:name="modifyItemName($event, item.id)"
+                 @update:quantity="modifyItemQuantity($event, item.id)"/>
     </div>
-    <div v-if="list.i.filter(i => !i.d).length === 0" class="no-items">Add items to this list above.</div>
+    <div v-if="!hasAnyItems" class="no-items">Add items to this list above.</div>
   </div>
 
   <share-sheet v-if="shareList"
@@ -122,6 +71,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Item from '@/classes/Item'
 import { useListsStore } from '@/stores/lists'
 import { useLiveRegion } from '@/composables/useLiveRegion'
+import ListItem from '@/components/ListItem.vue'
 import ShareSheet from '@/components/ShareSheet.vue'
 import type List from '@/classes/List'
 
@@ -132,6 +82,10 @@ const { announce } = useLiveRegion()
 
 const listId = computed(() => route.params.id as string)
 const list = computed(() => listsStore.getListFromId(listId.value))
+const activeItems = computed(() => list.value?.i.filter(i => !i.d) ?? [])
+const pendingItems = computed(() => activeItems.value.filter(i => !i.c))
+const checkedItems = computed(() => activeItems.value.filter(i => i.c === 1))
+const hasAnyItems = computed(() => activeItems.value.length > 0)
 const name = ref<string | null>(null)
 const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
@@ -199,10 +153,7 @@ async function deleteItem (id: string): Promise<void> {
 
   // Capture render-order snapshot BEFORE mutating so we can pick the
   // deleted item's neighbor deterministically.
-  const active = list.value!.i.filter(i => !i.d)
-  const pending = active.filter(i => !i.c)
-  const checked = active.filter(i => i.c === 1)
-  const renderOrder = [...pending, ...checked]
+  const renderOrder = [...pendingItems.value, ...checkedItems.value]
   const idx = renderOrder.findIndex(i => i.id === id)
   const neighbor = renderOrder[idx + 1] ?? renderOrder[idx - 1]
 
