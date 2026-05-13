@@ -11,13 +11,14 @@ const MAX_BACKOFF_MS = 60_000
 interface PollState {
   stopped: boolean
   backoff: number
+  cleanup: (() => void) | null
 }
 
 const activePollers = new Map<string, PollState>()
 
 export function startPoller (listId: string): void {
   if (activePollers.has(listId)) return
-  const state: PollState = { stopped: false, backoff: 1_000 }
+  const state: PollState = { stopped: false, backoff: 1_000, cleanup: null }
   activePollers.set(listId, state)
   void runPoller(listId, state)
 }
@@ -26,6 +27,8 @@ export function stopPoller (listId: string): void {
   const state = activePollers.get(listId)
   if (state) {
     state.stopped = true
+    state.cleanup?.()
+    state.cleanup = null
     activePollers.delete(listId)
   }
 }
@@ -34,14 +37,22 @@ async function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function waitVisible (): Promise<void> {
+async function waitVisible (state: PollState): Promise<void> {
   if (!document.hidden) return
   return new Promise(resolve => {
+    const cleanup = () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      state.cleanup = null
+    }
     const onVisible = () => {
       if (!document.hidden) {
-        document.removeEventListener('visibilitychange', onVisible)
+        cleanup()
         resolve()
       }
+    }
+    state.cleanup = () => {
+      cleanup()
+      resolve()
     }
     document.addEventListener('visibilitychange', onVisible)
   })
@@ -49,7 +60,7 @@ async function waitVisible (): Promise<void> {
 
 async function runPoller (listId: string, state: PollState): Promise<void> {
   while (!state.stopped) {
-    await waitVisible()
+    await waitVisible(state)
     if (state.stopped) break
 
     const meta = getMeta(listId)

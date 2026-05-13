@@ -95,6 +95,28 @@ describe('sync/poll', () => {
     expect(vi.mocked(applyPollPayload)).not.toHaveBeenCalled()
   })
 
+  it('stopPoller: removes the visibilitychange listener registered while hidden', async () => {
+    const hiddenDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden')
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+    const addSpy = vi.spyOn(document, 'addEventListener')
+    const removeSpy = vi.spyOn(document, 'removeEventListener')
+    try {
+      mGetMeta.mockReturnValue({ authToken: 'tok', lastCursor: 0, role: 'owner' })
+      startPoller('vis1')
+      await Promise.resolve()
+      const visAdds = addSpy.mock.calls.filter(([type]) => type === 'visibilitychange')
+      expect(visAdds.length).toBeGreaterThan(0)
+
+      stopPoller('vis1')
+      const visRemoves = removeSpy.mock.calls.filter(([type]) => type === 'visibilitychange')
+      expect(visRemoves.length).toBe(visAdds.length)
+    } finally {
+      if (hiddenDesc) Object.defineProperty(document, 'hidden', hiddenDesc)
+      addSpy.mockRestore()
+      removeSpy.mockRestore()
+    }
+  })
+
   it('runPoller: backs off and retries on network error', async () => {
     mGetMeta
       .mockReturnValueOnce({ authToken: 'tok', lastCursor: 0, role: 'owner' })
