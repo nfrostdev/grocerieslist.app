@@ -92,7 +92,11 @@ export async function handlePoll (
   if (auth instanceof Response) return auth
 
   const url = new URL(request.url)
-  const since = parseInt(url.searchParams.get('since') ?? '0', 10)
+  const sinceRaw = url.searchParams.get('since')
+  const since = sinceRaw === null ? 0 : Number(sinceRaw)
+  if (!Number.isInteger(since) || since < 0) {
+    return Response.json({ error: 'invalid since' }, { status: 400 })
+  }
 
   const list = await db.prepare(
     'SELECT id, name, u, version FROM lists WHERE id = ?'
