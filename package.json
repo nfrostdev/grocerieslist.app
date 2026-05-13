@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:integration": "vitest run --config tests/integration/vitest.integration.config.ts",
+    "test:integration:coverage": "vitest run --config tests/integration/vitest.integration.config.ts --coverage",
     "test:e2e": "playwright test",
     "dev:pages": "wrangler pages dev dist"
   },
