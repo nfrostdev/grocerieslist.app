@@ -58,6 +58,7 @@
             <input type="text"
                    :id="`item-name-${item.id}`"
                    :value="item.n"
+                   :ref="setItemNameRef(item.id)"
                    class="item__name"
                    @change="modifyItemName($event, item.id)"/>
             <button @click="deleteItem(item.id)"
@@ -92,6 +93,7 @@
             <input type="text"
                    :id="`item-name-${item.id}`"
                    :value="item.n"
+                   :ref="setItemNameRef(item.id)"
                    class="item__name"
                    @change="modifyItemName($event, item.id)"/>
             <button @click="deleteItem(item.id)"
@@ -133,6 +135,11 @@ const list = computed(() => listsStore.getListFromId(listId.value))
 const name = ref<string | null>(null)
 const quantity = ref<number>(1)
 const itemName = ref<HTMLInputElement | null>(null)
+const itemNameRefs: Record<string, HTMLInputElement | null> = {}
+const setItemNameRef = (id: string) => (el: unknown) => {
+  if (el) itemNameRefs[id] = el as HTMLInputElement
+  else delete itemNameRefs[id]
+}
 const shareOpen = ref(false)
 const shareList = shallowRef<List | null>(null)
 const provisioning = ref(false)
@@ -189,15 +196,23 @@ async function deleteItem (id: string): Promise<void> {
   const item = list.value!.i.find(i => i.id === id)
   if (!item) return
   const deletedName = item.n
+
+  // Capture render-order snapshot BEFORE mutating so we can pick the
+  // deleted item's neighbor deterministically.
+  const active = list.value!.i.filter(i => !i.d)
+  const pending = active.filter(i => !i.c)
+  const checked = active.filter(i => i.c === 1)
+  const renderOrder = [...pending, ...checked]
+  const idx = renderOrder.findIndex(i => i.id === id)
+  const neighbor = renderOrder[idx + 1] ?? renderOrder[idx - 1]
+
   listsStore.softDeleteItem(listId.value, id)
   announce(`${deletedName} removed`)
   await nextTick()
-  const nextInput = document.querySelector<HTMLInputElement>('.item__name')
-  if (nextInput) {
-    nextInput.focus()
-  } else {
-    itemName.value?.focus()
-  }
+
+  const target = neighbor ? itemNameRefs[neighbor.id] : null
+  if (target) target.focus()
+  else itemName.value?.focus()
 }
 
 function toggleItemCheckedStatus (id: string): void {

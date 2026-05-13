@@ -17,7 +17,7 @@ const routes = [
   { path: '/lists', name: 'Lists', component: { template: '<div/>' } }
 ]
 
-const mountList = async (items = [makeItem()]) => {
+const mountList = async (items = [makeItem()], opts: { attach?: boolean } = {}) => {
   const pinia = createPinia()
 
   const seeder = {
@@ -31,6 +31,7 @@ const mountList = async (items = [makeItem()]) => {
   await router.push({ name: 'List', params: { id: listId } })
 
   const wrapper = mount(ListV, {
+    ...(opts.attach ? { attachTo: document.body } : {}),
     global: {
       plugins: [pinia, seeder, router],
       stubs: { FontAwesomeIcon: { template: '<span />' } }
@@ -134,6 +135,40 @@ describe('List.vue', () => {
   it('shows the all-checked banner when every active item is checked', async () => {
     const { wrapper } = await mountList([makeItem({ c: 1 })])
     expect(wrapper.text()).toContain('checked off all your items')
+  })
+
+  describe('focus management after delete', () => {
+    const itemsForFocus = () => [
+      makeItem({ id: 'i1', n: 'Apples' }),
+      makeItem({ id: 'i2', n: 'Bread' }),
+      makeItem({ id: 'i3', n: 'Cheese' })
+    ]
+
+    it('focuses the next item after deleting a middle item', async () => {
+      const { wrapper } = await mountList(itemsForFocus(), { attach: true })
+      const deleteButtons = wrapper.findAll('.item__icon--delete')
+      await deleteButtons[1].trigger('click') // delete Bread
+      await flushPromises()
+      expect((document.activeElement as HTMLInputElement).id).toBe('item-name-i3')
+      wrapper.unmount()
+    })
+
+    it('focuses the previous item after deleting the last item', async () => {
+      const { wrapper } = await mountList(itemsForFocus(), { attach: true })
+      const deleteButtons = wrapper.findAll('.item__icon--delete')
+      await deleteButtons[2].trigger('click') // delete Cheese
+      await flushPromises()
+      expect((document.activeElement as HTMLInputElement).id).toBe('item-name-i2')
+      wrapper.unmount()
+    })
+
+    it('focuses the add-item input after deleting the only remaining item', async () => {
+      const { wrapper } = await mountList([makeItem({ id: 'only', n: 'Solo' })], { attach: true })
+      await wrapper.find('.item__icon--delete').trigger('click')
+      await flushPromises()
+      expect((document.activeElement as HTMLInputElement).id).toBe('name')
+      wrapper.unmount()
+    })
   })
 
   describe('navigation guard', () => {
