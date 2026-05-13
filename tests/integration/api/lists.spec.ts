@@ -326,6 +326,24 @@ describe('GET /api/lists/:id?since=', () => {
     const res = await handlePoll(db, req, '01JVKZ00000000000000000000')
     expect(res.status).toBe(401) // token not valid for this list
   })
+
+  it('rejects non-numeric since with 400', async () => {
+    const { id, authToken } = await provision()
+    const req = new Request(`http://localhost/api/lists/${id}?since=abc`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(400)
+  })
+
+  it('rejects negative since with 400', async () => {
+    const { id, authToken } = await provision()
+    const req = new Request(`http://localhost/api/lists/${id}?since=-1`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(400)
+  })
 })
 
 // ---------------------------------------------------------------------------
