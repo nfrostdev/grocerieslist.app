@@ -4,7 +4,7 @@ import { getMeta } from './storage'
 import { upsertItem } from './transport'
 import { reconcileServerItem } from './reconcile'
 import { cleanupListLocally } from './cleanup'
-import type { Op } from './types'
+import type { Op, UpsertItemOp } from './types'
 
 const QUEUE_KEY = 'pendingOps'
 const MAX_BACKOFF_MS = 60_000
@@ -13,16 +13,35 @@ let flushRunning = false
 let backoffMs = 1_000
 
 function loadQueue (): Op[] {
-  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as Op[] } catch { return [] }
+  try {
+    const raw = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as Array<Op & { opId?: string }>
+    let migrated = false
+    for (const op of raw) {
+      if (!op.opId) {
+        op.opId = crypto.randomUUID()
+        migrated = true
+      }
+    }
+    if (migrated) saveQueue(raw as Op[])
+    return raw as Op[]
+  } catch { return [] }
 }
 
 function saveQueue (q: Op[]): void {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q))
 }
 
-export function enqueue (op: Op): void {
+function removeOpById (opId: string): void {
+  saveQueue(loadQueue().filter(o => o.opId !== opId))
+}
+
+function removeOpsByListId (listId: string): void {
+  saveQueue(loadQueue().filter(o => o.listId !== listId))
+}
+
+export function enqueue (op: Omit<UpsertItemOp, 'opId'>): void {
   const q = loadQueue()
-  q.push(op)
+  q.push({ ...op, opId: crypto.randomUUID() })
   saveQueue(q)
   scheduleFlush()
 }
@@ -58,7 +77,7 @@ async function flush (): Promise<void> {
     const op = q[0]
     const meta = getMeta(op.listId)
     if (!meta) {
-      saveQueue(q.filter(o => o.listId !== op.listId))
+      removeOpsByListId(op.listId)
       continue
     }
 
@@ -67,7 +86,7 @@ async function flush (): Promise<void> {
     if (result.ok) {
       backoffMs = 1_000
       reconcileServerItem(op.listId, result.data.item)
-      saveQueue(loadQueue().slice(1))
+      removeOpById(op.opId)
     } else if (
       result.error.kind === 'unauthorized' ||
       result.error.kind === 'not-found'
@@ -79,7 +98,7 @@ async function flush (): Promise<void> {
           : `"${listName}" was deleted.`,
         'error'
       )
-      saveQueue(loadQueue().filter(o => o.listId !== op.listId))
+      removeOpsByListId(op.listId)
       cleanupListLocally(op.listId)
     } else {
       await sleep(backoffMs)

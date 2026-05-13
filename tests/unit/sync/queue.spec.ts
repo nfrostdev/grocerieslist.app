@@ -85,6 +85,47 @@ describe('enqueue', () => {
   })
 })
 
+describe('flush — concurrent-tab race', () => {
+  it('removes only the processed op by opId, preserving concurrent appends', async () => {
+    vi.mocked(getMeta).mockReturnValue(META)
+
+    let resolveFirst!: (v: { ok: true; data: { item: typeof ITEM } }) => void
+    vi.mocked(upsertItem)
+      .mockImplementationOnce(() => new Promise(resolve => {
+        resolveFirst = resolve as typeof resolveFirst
+      }))
+      // The sibling op blocks forever — we just want to snapshot localStorage
+      // after the first removal but before the loop processes the next op.
+      .mockImplementation(() => new Promise(() => {}))
+    mockStore({ getListFromId: vi.fn().mockReturnValue({ id: 'list1', n: 'G', i: [] }) })
+
+    enqueue({ kind: 'upsertItem', listId: 'list1', item: ITEM })
+    await Promise.resolve()
+
+    // Simulate another tab appending an op during the in-flight upsert.
+    const inFlight = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as Array<{ opId: string }>
+    const sibling = { kind: 'upsertItem', opId: 'sibling-from-other-tab', listId: 'list1', item: { ...ITEM, id: 'sibling' } }
+    localStorage.setItem('pendingOps', JSON.stringify([...inFlight, sibling]))
+
+    resolveFirst({ ok: true, data: { item: ITEM } })
+    await vi.runAllTimersAsync()
+
+    const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as Array<{ opId: string }>
+    expect(q.map(o => o.opId)).toEqual(['sibling-from-other-tab'])
+  })
+
+  it('migrates legacy queue entries without opId on load', () => {
+    localStorage.setItem('pendingOps', JSON.stringify([{ kind: 'upsertItem', listId: 'list1', item: ITEM }]))
+    vi.mocked(getMeta).mockReturnValue(META)
+    vi.mocked(upsertItem).mockReturnValue(new Promise(() => {}))
+    startDrainer()
+    const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as Array<{ opId?: string }>
+    expect(q).toHaveLength(1)
+    expect(typeof q[0].opId).toBe('string')
+    expect((q[0].opId ?? '').length).toBeGreaterThan(0)
+  })
+})
+
 describe('flush — success path', () => {
   it('removes head op and calls reconcileServerItem on success', async () => {
     vi.mocked(getMeta).mockReturnValue(META)

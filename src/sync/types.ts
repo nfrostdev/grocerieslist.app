@@ -46,6 +46,7 @@ export interface MintTokenResponse {
 
 export interface UpsertItemOp {
   kind: 'upsertItem'
+  opId: string
   listId: string
   item: ItemPayload
 }
