@@ -1,6 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { useListsStore } from '@/stores/lists'
+import { useToastStore } from '@/stores/toast'
 import List from '@/classes/List'
 import Item from '@/classes/Item'
 
@@ -76,6 +77,31 @@ describe('lists store', () => {
   it('getListFromId returns undefined for unknown id', () => {
     const store = useListsStore()
     expect(store.getListFromId('unknown')).toBeUndefined()
+  })
+
+  describe('persist error handling', () => {
+    afterEach(() => vi.restoreAllMocks())
+
+    it('emits an error toast and keeps in-memory state when persist throws', () => {
+      const store = useListsStore()
+      const list = new List('Quota', [])
+      store.createList(list)
+      const toast = useToastStore()
+
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+      })
+
+      store.addItem(list.id, new Item('Milk', '1'))
+
+      expect(store.lists[0].i).toHaveLength(1)
+      expect(toast.toasts).toHaveLength(1)
+      expect(toast.toasts[0].type).toBe('error')
+
+      store.addItem(list.id, new Item('Eggs', '1'))
+      expect(toast.toasts).toHaveLength(1)
+    })
   })
 
   describe('replaceList', () => {

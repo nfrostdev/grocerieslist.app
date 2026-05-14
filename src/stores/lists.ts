@@ -4,6 +4,7 @@ import type List from '@/classes/List'
 import type Item from '@/classes/Item'
 import { getMeta } from '@/sync/storage'
 import { enqueue } from '@/sync/queue'
+import { useToastStore } from '@/stores/toast'
 
 function sortItems (list: List) {
   list.i.sort((a, b) => a.n.localeCompare(b.n, undefined, { sensitivity: 'base' }))
@@ -11,13 +12,25 @@ function sortItems (list: List) {
 
 export const useListsStore = defineStore('lists', () => {
   const lists = ref<List[]>([])
+  let lastPersistFailed = false
 
   function getListFromId (id: string) {
     return lists.value.find(l => l.id === id)
   }
 
-  function persist () {
-    localStorage.setItem('lists', JSON.stringify(lists.value))
+  function persist (): boolean {
+    try {
+      localStorage.setItem('lists', JSON.stringify(lists.value))
+      lastPersistFailed = false
+      return true
+    } catch (err) {
+      console.warn('[lists] failed to persist', err)
+      if (!lastPersistFailed) {
+        useToastStore().add('Could not save changes — your device may be out of storage.', 'error')
+        lastPersistFailed = true
+      }
+      return false
+    }
   }
 
   function init () {
