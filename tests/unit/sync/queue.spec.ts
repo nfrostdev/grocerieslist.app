@@ -124,6 +124,26 @@ describe('flush — concurrent-tab race', () => {
     expect(typeof q[0].opId).toBe('string')
     expect((q[0].opId ?? '').length).toBeGreaterThan(0)
   })
+
+  it('quarantines and discards a corrupted pendingOps blob', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    localStorage.setItem('pendingOps', '{not json')
+    startDrainer()
+    expect(localStorage.getItem('pendingOps')).toBeNull()
+    const backups = Object.keys(localStorage).filter(k => k.startsWith('pendingOps.corrupted.'))
+    expect(backups).toHaveLength(1)
+    expect(localStorage.getItem(backups[0])).toBe('{not json')
+    expect(console.warn).toHaveBeenCalled()
+  })
+
+  it('quarantines a non-array pendingOps blob', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    localStorage.setItem('pendingOps', JSON.stringify({ ops: [] }))
+    startDrainer()
+    expect(localStorage.getItem('pendingOps')).toBeNull()
+    const backups = Object.keys(localStorage).filter(k => k.startsWith('pendingOps.corrupted.'))
+    expect(backups).toHaveLength(1)
+  })
 })
 
 describe('flush — success path', () => {
