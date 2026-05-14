@@ -206,4 +206,25 @@ describe('ShareSheet', () => {
     await flushPromises()
     expect(true).toBe(true)
   })
+
+  it('does not schedule a reset timer when unmounted before clipboard resolves', async () => {
+    let resolveWrite: (v?: unknown) => void = () => {}
+    const writeText = vi.fn(() => new Promise(resolve => { resolveWrite = resolve }))
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    vi.useFakeTimers()
+
+    const wrapper = mountSheet({ open: true })
+    await flushPromises()
+    await wrapper.findAll('button').find(b => b.text().includes('Copy link'))!.trigger('click')
+
+    wrapper.unmount()
+    resolveWrite()
+    await flushPromises()
+
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    vi.advanceTimersByTime(5000)
+    expect(setTimeoutSpy).not.toHaveBeenCalled()
+
+    vi.useRealTimers()
+  })
 })
