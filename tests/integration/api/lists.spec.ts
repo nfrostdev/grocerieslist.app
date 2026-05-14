@@ -85,6 +85,37 @@ describe('POST /api/lists', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when name is empty or whitespace-only', async () => {
+    for (const name of ['', '   ', '\t\n ', ' ']) {
+      const req = new Request('http://localhost/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, items: [] })
+      })
+      const res = await handleProvision(db, req)
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('stores trimmed list name', async () => {
+    const req = new Request('http://localhost/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: '  Weekly Shop  ', items: [] })
+    })
+    const res = await handleProvision(db, req)
+    expect(res.status).toBe(200)
+    const { id, authToken } = await res.json() as { id: string; authToken: string }
+
+    const joinReq = new Request(`http://localhost/api/lists/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: authToken })
+    })
+    const body = await handleJoin(db, joinReq, id).then(r => r.json() as Promise<{ name: string }>)
+    expect(body.name).toBe('Weekly Shop')
+  })
+
   it('returns 400 for invalid JSON', async () => {
     const req = new Request('http://localhost/api/lists', {
       method: 'POST',
