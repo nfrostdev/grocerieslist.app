@@ -19,22 +19,29 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, isNavigationFailure, NavigationFailureType } from 'vue-router'
 import List from '@/classes/List'
 import { useListsStore } from '@/stores/lists'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
 const listsStore = useListsStore()
+const toastStore = useToastStore()
 
 const name = ref<string | null>(null)
 const newListName = ref<HTMLInputElement | null>(null)
 
-function createList (): void {
+async function createList (): Promise<void> {
   const list = listsStore.createList(new List(name.value!, []))
-  router.push({
-    name: 'List',
-    params: { id: list.id }
-  })
+  try {
+    await router.push({
+      name: 'List',
+      params: { id: list.id }
+    })
+  } catch (err) {
+    if (isNavigationFailure(err, NavigationFailureType.duplicated)) return
+    toastStore.add('Could not open the new list.', 'error')
+  }
 }
 
 onMounted(() => {
