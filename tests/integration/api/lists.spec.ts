@@ -241,6 +241,18 @@ describe('POST /api/lists/:id/join', () => {
     expect(res.status).toBe(401)
   })
 
+  it('returns 400 for non-ULID list ids', async () => {
+    for (const badId of ['', 'not-a-ulid', 'a'.repeat(26), '01JVKZ0000000000000000000', '01JVKZ000000000000000000000']) {
+      const req = new Request(`http://localhost/api/lists/${badId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'anything' })
+      })
+      const res = await handleJoin(db, req, badId)
+      expect(res.status).toBe(400)
+    }
+  })
+
   it('returns 401 when token belongs to a different list', async () => {
     const { authToken } = await provision('List A')
     const { id: otherId } = await provision('List B')
@@ -373,6 +385,14 @@ describe('GET /api/lists/:id?since=', () => {
       headers: { Authorization: `Bearer ${authToken}` }
     })
     const res = await handlePoll(db, req, id)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for non-ULID list ids', async () => {
+    const req = new Request('http://localhost/api/lists/garbage?since=0', {
+      headers: { Authorization: 'Bearer whatever' }
+    })
+    const res = await handlePoll(db, req, 'garbage')
     expect(res.status).toBe(400)
   })
 })

@@ -1,4 +1,9 @@
 const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
+
+export function isUlid (value: unknown): value is string {
+  return typeof value === 'string' && ULID_PATTERN.test(value)
+}
 
 export function generateUlid (): string {
   const chars: string[] = new Array(26)

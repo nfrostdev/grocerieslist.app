@@ -1,8 +1,12 @@
 import type { ItemRow, ListRow, TokenRow } from './types'
-import { generateUlid, generateToken } from './ulid'
+import { generateUlid, generateToken, isUlid } from './ulid'
 import { authenticate } from './auth'
 import { hashToken } from '../../../shared/crypto'
 import { LIMITS, readJsonBody, validateItem } from './validate'
+
+function invalidListId (): Response {
+  return Response.json({ error: 'invalid list id' }, { status: 400 })
+}
 
 export async function handleUpsertItem (
   db: D1Database,
@@ -10,6 +14,7 @@ export async function handleUpsertItem (
   listId: string,
   itemId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
 
@@ -92,6 +97,7 @@ export async function handlePoll (
   request: Request,
   listId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
 
@@ -132,6 +138,7 @@ export async function handleJoin (
   request: Request,
   listId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const parsed = await readJsonBody<{ token?: unknown }>(request)
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body
@@ -177,6 +184,7 @@ export async function handleMintToken (
   request: Request,
   listId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
   if ((auth as TokenRow).role !== 'owner') {
@@ -199,6 +207,7 @@ export async function handleRevokeToken (
   request: Request,
   listId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
   if ((auth as TokenRow).role !== 'owner') {
@@ -217,6 +226,7 @@ export async function handleDeleteList (
   request: Request,
   listId: string
 ): Promise<Response> {
+  if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
   if ((auth as TokenRow).role !== 'owner') {
