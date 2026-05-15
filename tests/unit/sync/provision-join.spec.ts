@@ -34,7 +34,7 @@ describe('sync/index — provision', () => {
   })
 
   it('renames list id, saves meta, starts poller, and returns joinUrl + listId', async () => {
-    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv1', authToken: 'tok1' } })
+    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv1', authToken: 'tok1', role: 'owner' as const } })
     const store = useListsStore()
     store.$patch({ lists: [{ id: 'loc1', n: 'Groceries', i: [] }] })
 
@@ -48,7 +48,7 @@ describe('sync/index — provision', () => {
   })
 
   it('sends only non-deleted items to provisionList', async () => {
-    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv2', authToken: 't2' } })
+    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv2', authToken: 't2', role: 'owner' as const } })
     const list = {
       id: 'loc2',
       n: 'List',
@@ -65,7 +65,7 @@ describe('sync/index — provision', () => {
   })
 
   it('sets lastCursor to max(item.u) of provisioned non-deleted items', async () => {
-    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv3', authToken: 't3' } })
+    mProvisionList.mockResolvedValue({ ok: true, data: { id: 'srv3', authToken: 't3', role: 'owner' as const } })
     const list = {
       id: 'loc3',
       n: 'List',

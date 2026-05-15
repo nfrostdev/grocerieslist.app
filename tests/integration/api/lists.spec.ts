@@ -45,7 +45,7 @@ beforeEach(async () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/lists', () => {
-  it('provisions a list and returns id + authToken', async () => {
+  it('provisions a list and returns id + authToken + role', async () => {
     const req = new Request('http://localhost/api/lists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,10 +53,11 @@ describe('POST /api/lists', () => {
     })
     const res = await handleProvision(db, req)
     expect(res.status).toBe(200)
-    const body = await res.json() as { id: string; authToken: string }
+    const body = await res.json() as { id: string; authToken: string; role: string }
     expect(body.id).toMatch(/^[0-9A-Z]{26}$/) // ULID
     expect(body.authToken).toBeTruthy()
     expect(body.authToken.length).toBeGreaterThan(30)
+    expect(body.role).toBe('owner')
   })
 
   it('provisions a list with items', async () => {

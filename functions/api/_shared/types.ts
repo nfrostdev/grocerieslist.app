@@ -1,3 +1,5 @@
+import type { Role } from '../../../shared/roles'
+
 export interface Env {
   DB: D1Database
 }
@@ -20,6 +22,6 @@ export interface ItemRow {
 
 export interface TokenRow {
   list_id: string
-  role: 'owner' | 'editor'
+  role: Role
   revoked_at: number | null
 }

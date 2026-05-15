@@ -2,6 +2,7 @@ import type { ItemRow, ListRow, TokenRow } from './types'
 import { generateUlid, generateToken, isUlid } from './ulid'
 import { authenticate } from './auth'
 import { hashToken } from '../../../shared/crypto'
+import { ROLES } from '../../../shared/roles'
 import { LIMITS, readJsonBody, validateItem } from './validate'
 
 function invalidListId (): Response {
@@ -81,7 +82,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
     ).bind(listId, name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
-    ).bind(tokenHash, listId, 'owner', now),
+    ).bind(tokenHash, listId, ROLES.owner, now),
     ...items.map((item) =>
       db.prepare(
         'INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -89,7 +90,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
     )
   ])
 
-  return Response.json({ id: listId, authToken })
+  return Response.json({ id: listId, authToken, role: ROLES.owner })
 }
 
 export async function handlePoll (
@@ -171,7 +172,7 @@ export async function handleJoin (
 
   return Response.json({
     listId: list.id,
-    role: 'editor',
+    role: ROLES.editor,
     name: list.name,
     version: list.version,
     cursor,
