@@ -1,8 +1,21 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { provisionList, joinList, pollList, mintToken, revokeToken, deleteListRequest } from '@/sync/transport'
 
-const mockFetch = (ok: boolean, status: number, data: unknown) =>
-  vi.fn().mockResolvedValue({ ok, status, json: () => Promise.resolve(data) })
+const mockFetch = (ok: boolean, status: number, data: unknown, headers: Record<string, string> = {}) =>
+  vi.fn().mockResolvedValue({
+    ok,
+    status,
+    json: () => Promise.resolve(data),
+    headers: { get: (k: string) => headers[k.toLowerCase()] ?? null }
+  })
+
+const mockFetchEmptyBody = (status: number) =>
+  vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+    headers: { get: () => null }
+  })
 
 const mockNetworkError = () =>
   vi.fn().mockRejectedValue(new TypeError('fetch failed'))
@@ -68,6 +81,18 @@ describe('sync/transport', () => {
       expect(await pollList('abc', 'tok', 1)).toEqual({ ok: true, data })
     })
 
+    it('does not throw on 204 No Content', async () => {
+      vi.stubGlobal('fetch', mockFetchEmptyBody(204))
+      const result = await pollList('abc', 'tok', 0)
+      expect(result.ok).toBe(true)
+    })
+
+    it('does not throw on 200 with content-length: 0', async () => {
+      vi.stubGlobal('fetch', mockFetch(true, 200, undefined, { 'content-length': '0' }))
+      const result = await pollList('abc', 'tok', 0)
+      expect(result.ok).toBe(true)
+    })
+
     it('returns unauthorized on 401', async () => {
       vi.stubGlobal('fetch', mockFetch(false, 401, {}))
       expect(await pollList('abc', 'tok', 0)).toEqual({ ok: false, error: { kind: 'unauthorized' } })
@@ -122,6 +147,11 @@ describe('sync/transport', () => {
   describe('deleteListRequest', () => {
     it('returns ok on 200', async () => {
       vi.stubGlobal('fetch', mockFetch(true, 200, {}))
+      expect((await deleteListRequest('list1', 'tok')).ok).toBe(true)
+    })
+
+    it('does not parse body on 204', async () => {
+      vi.stubGlobal('fetch', mockFetchEmptyBody(204))
       expect((await deleteListRequest('list1', 'tok')).ok).toBe(true)
     })
 
