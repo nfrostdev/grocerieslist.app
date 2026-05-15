@@ -110,8 +110,8 @@ export async function handlePoll (
   }
 
   const list = await db.prepare(
-    'SELECT id, name, u, version FROM lists WHERE id = ?'
-  ).bind(listId).first<ListRow>()
+    'SELECT id, u, version FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id' | 'u' | 'version'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -125,13 +125,7 @@ export async function handlePoll (
 
   const cursor = Math.max(list.u, maxItemU?.m ?? 0)
 
-  const payload: Record<string, unknown> = { version: list.version, cursor, items }
-  if (list.u > since) {
-    payload.name = list.name
-    payload.nameUpdatedAt = list.u
-  }
-
-  return Response.json(payload)
+  return Response.json({ version: list.version, cursor, items })
 }
 
 export async function handleJoin (
@@ -158,8 +152,8 @@ export async function handleJoin (
   }
 
   const list = await db.prepare(
-    'SELECT id, name, u, version FROM lists WHERE id = ?'
-  ).bind(listId).first<ListRow>()
+    'SELECT id, name, u FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id' | 'name' | 'u'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -174,7 +168,6 @@ export async function handleJoin (
     listId: list.id,
     role: ROLES.editor,
     name: list.name,
-    version: list.version,
     cursor,
     items
   })

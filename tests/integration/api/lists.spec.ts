@@ -209,11 +209,10 @@ describe('POST /api/lists/:id/join', () => {
     })
     const res = await handleJoin(db, req, id)
     expect(res.status).toBe(200)
-    const body = await res.json() as { listId: string; role: string; name: string; version: number; cursor: number; items: unknown[] }
+    const body = await res.json() as { listId: string; role: string; name: string; cursor: number; items: unknown[] }
     expect(body.listId).toBe(id)
     expect(body.role).toBe('editor')
     expect(body.name).toBe('Test List')
-    expect(body.version).toBe(1)
     expect(body.cursor).toBe(0)
     expect(body.items).toEqual([])
   })
