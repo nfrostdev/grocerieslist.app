@@ -30,16 +30,24 @@ describe('ListItem.vue', () => {
     expect(wrapper.emitted('delete')).toHaveLength(1)
   })
 
-  it('emits update:name on the name input change event', async () => {
+  it('emits update:name with the input element on change', async () => {
     const wrapper = mountItem()
     await wrapper.find('.item__name').setValue('Oranges')
-    expect(wrapper.emitted('update:name')).toBeTruthy()
+    const emitted = wrapper.emitted('update:name') as unknown[][]
+    expect(emitted).toHaveLength(1)
+    const [input] = emitted[0] as [HTMLInputElement]
+    expect(input).toBeInstanceOf(HTMLInputElement)
+    expect(input.value).toBe('Oranges')
   })
 
-  it('emits update:quantity on the quantity input change event', async () => {
+  it('emits update:quantity with the input element on change', async () => {
     const wrapper = mountItem()
     await wrapper.find('.item__quantity__input').setValue('5')
-    expect(wrapper.emitted('update:quantity')).toBeTruthy()
+    const emitted = wrapper.emitted('update:quantity') as unknown[][]
+    expect(emitted).toHaveLength(1)
+    const [input] = emitted[0] as [HTMLInputElement]
+    expect(input).toBeInstanceOf(HTMLInputElement)
+    expect(input.value).toBe('5')
   })
 
   it('applies the checkbox-icon--checked class when checked is true', () => {
