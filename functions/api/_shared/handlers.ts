@@ -187,7 +187,7 @@ export async function handleMintToken (
   if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
-  if ((auth as TokenRow).role !== 'owner') {
+  if (auth.role !== 'owner') {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -210,7 +210,7 @@ export async function handleRevokeToken (
   if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
-  if ((auth as TokenRow).role !== 'owner') {
+  if (auth.role !== 'owner') {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -229,7 +229,7 @@ export async function handleDeleteList (
   if (!isUlid(listId)) return invalidListId()
   const auth = await authenticate(db, request, listId)
   if (auth instanceof Response) return auth
-  if ((auth as TokenRow).role !== 'owner') {
+  if (auth.role !== 'owner') {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
