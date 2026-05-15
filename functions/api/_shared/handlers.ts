@@ -46,7 +46,11 @@ export async function handleProvision (db: D1Database, request: Request): Promis
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body
 
-  if (typeof body.name !== 'string' || body.name.length === 0 || body.name.length > LIMITS.listNameMax) {
+  if (typeof body.name !== 'string' || body.name.length > LIMITS.listNameMax) {
+    return Response.json({ error: 'name required' }, { status: 400 })
+  }
+  const name = body.name.trim()
+  if (name.length === 0) {
     return Response.json({ error: 'name required' }, { status: 400 })
   }
 
@@ -69,7 +73,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
   await db.batch([
     db.prepare(
       'INSERT INTO lists (id, name, u, version, created_at) VALUES (?, ?, 0, 1, ?)'
-    ).bind(listId, body.name, now),
+    ).bind(listId, name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
     ).bind(tokenHash, listId, 'owner', now),
