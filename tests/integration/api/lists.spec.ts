@@ -133,6 +133,8 @@ describe('POST /api/lists', () => {
       { id: 'abc12345', n: 'Milk', q: '1', c: 0, u: '1000', d: 0 }, // u non-number
       { id: 'abc12345', n: 'Milk', q: '1', c: 0, u: 1000, d: 2 }, // d out of range
       { id: '', n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }, // id empty
+      { id: 'abc12345', n: '', q: '1', c: 0, u: 1000, d: 0 }, // n empty
+      { id: 'abc12345', n: '   ', q: '1', c: 0, u: 1000, d: 0 }, // n whitespace-only
       { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 } // id missing
     ]
     for (const item of cases) {
