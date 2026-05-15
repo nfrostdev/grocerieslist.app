@@ -7,24 +7,62 @@ import { cleanupListLocally } from './cleanup'
 import type { Op, UpsertItemOp } from './types'
 
 const QUEUE_KEY = 'pendingOps'
+const CORRUPTED_PREFIX = 'pendingOps.corrupted.'
 const MAX_BACKOFF_MS = 60_000
 
 let flushRunning = false
 let backoffMs = 1_000
 
 function loadQueue (): Op[] {
+  let raw: string | null
   try {
-    const raw = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as Array<Op & { opId?: string }>
-    let migrated = false
-    for (const op of raw) {
-      if (!op.opId) {
-        op.opId = crypto.randomUUID()
-        migrated = true
-      }
+    raw = localStorage.getItem(QUEUE_KEY)
+  } catch (err) {
+    console.warn('[sync/queue] localStorage unavailable for read', err)
+    return []
+  }
+  if (raw === null) return []
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch (err) {
+    console.warn('[sync/queue] corrupted pendingOps — preserving and discarding', err)
+    quarantineCorrupted(raw)
+    return []
+  }
+  if (!Array.isArray(parsed)) {
+    console.warn('[sync/queue] pendingOps not an array — preserving and discarding')
+    quarantineCorrupted(raw)
+    return []
+  }
+
+  const ops = parsed as Array<Op & { opId?: string }>
+  let migrated = false
+  for (const op of ops) {
+    if (op && !op.opId) {
+      op.opId = crypto.randomUUID()
+      migrated = true
     }
-    if (migrated) saveQueue(raw as Op[])
-    return raw as Op[]
-  } catch { return [] }
+  }
+  if (migrated) {
+    try {
+      saveQueue(ops as Op[])
+    } catch (err) {
+      console.warn('[sync/queue] failed to persist migrated queue', err)
+    }
+  }
+  return ops as Op[]
+}
+
+function quarantineCorrupted (raw: string): void {
+  try {
+    localStorage.setItem(`${CORRUPTED_PREFIX}${Date.now()}`, raw)
+    localStorage.removeItem(QUEUE_KEY)
+  } catch {
+    // Quota or storage gone — drop the live key best-effort.
+    try { localStorage.removeItem(QUEUE_KEY) } catch { /* nothing more to do */ }
+  }
 }
 
 function saveQueue (q: Op[]): void {
