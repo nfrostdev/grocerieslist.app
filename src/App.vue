@@ -30,6 +30,18 @@ const loaded = ref(false)
 const { message: liveMessage, announce } = useLiveRegion()
 const { init: initTheme, cleanup: cleanupTheme } = useTheme()
 
+const JOIN_RETRY_DELAYS_MS = [1000, 2000, 4000]
+
+async function tryJoinWithRetry (listId: string, token: string): Promise<sync.JoinResult> {
+  let result = await sync.join(listId, token)
+  for (const delay of JOIN_RETRY_DELAYS_MS) {
+    if (result.ok || result.reason !== 'network') return result
+    await new Promise(resolve => setTimeout(resolve, delay))
+    result = await sync.join(listId, token)
+  }
+  return result
+}
+
 async function handleJoinFragment () {
   const m = /^#join=([^.]+)\.(.+)$/.exec(window.location.hash)
   if (!m) return
@@ -42,9 +54,11 @@ async function handleJoinFragment () {
     return
   }
 
-  const ok = await sync.join(listId, token)
-  if (ok) {
+  const result = await tryJoinWithRetry(listId, token)
+  if (result.ok) {
     router.replace({ name: 'List', params: { id: listId } })
+  } else if (result.reason === 'network') {
+    announce('Could not join list — network unavailable, please try the link again when online.')
   } else {
     announce('Could not join list — link may be invalid or revoked.')
   }
