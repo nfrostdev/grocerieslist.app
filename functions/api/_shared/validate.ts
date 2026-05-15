@@ -16,7 +16,7 @@ export function validateItem (raw: unknown): ItemRow | null {
   const r = raw as Record<string, unknown>
 
   if (typeof r.id !== 'string' || r.id.length === 0 || r.id.length > LIMITS.itemIdMax) return null
-  if (typeof r.n !== 'string' || r.n.length > LIMITS.itemNameMax) return null
+  if (typeof r.n !== 'string' || r.n.trim().length === 0 || r.n.length > LIMITS.itemNameMax) return null
   if (typeof r.u !== 'number' || !Number.isFinite(r.u) || r.u < 0 || r.u > MAX_TIMESTAMP) return null
 
   const q = r.q === undefined ? '' : r.q
