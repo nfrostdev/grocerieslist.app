@@ -103,6 +103,7 @@ const { announce } = useLiveRegion()
 
 let copyTimer: ReturnType<typeof setTimeout> | null = null
 let provisionedListId: string | null = null
+let isMounted = true
 
 const isOwner = computed(() => sync.getMeta(props.list.id)?.role === 'owner')
 
@@ -214,11 +215,17 @@ async function onCopy () {
   if (!joinUrl.value) return
   try {
     await navigator.clipboard.writeText(joinUrl.value)
+    if (!isMounted) return
     copied.value = true
     announce('Link copied to clipboard')
     if (copyTimer) clearTimeout(copyTimer)
-    copyTimer = setTimeout(() => { copied.value = false }, 2000)
+    copyTimer = setTimeout(() => {
+      copyTimer = null
+      if (!isMounted) return
+      copied.value = false
+    }, 2000)
   } catch {
+    if (!isMounted) return
     announce('Could not copy link')
   }
 }
@@ -254,7 +261,11 @@ watch(() => props.open, async (isOpen) => {
 })
 
 onUnmounted(() => {
-  if (copyTimer) clearTimeout(copyTimer)
+  isMounted = false
+  if (copyTimer) {
+    clearTimeout(copyTimer)
+    copyTimer = null
+  }
 })
 </script>
 
