@@ -32,7 +32,16 @@ export default [
       'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
       'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
       'vue/multi-word-component-names': 'off',
-      // Static analyzer can't resolve dynamic :for bindings; axe e2e tests provide coverage
+      // Static analyzer cannot resolve dynamic `:for` bindings (e.g. `:for="`item-name-${item.id}`"`),
+      // so the rule produces false positives across ListItem.vue, List.vue, etc.
+      // Coverage relied on:
+      //   • axe e2e runs in tests/e2e/smoke.spec.ts and tests/e2e/sync.spec.ts
+      //     (wcag2a, wcag2aa, wcag21a, wcag21aa — includes axe rules `label`,
+      //     `form-field-multiple-labels`, `label-content-name-mismatch`,
+      //     `aria-input-field-name`).
+      //   • These flag any input whose accessible name is missing at runtime,
+      //     which is the actual user-visible failure mode this lint rule
+      //     attempts to anticipate statically.
       'vuejs-accessibility/label-has-for': 'off',
       'vuejs-accessibility/no-autofocus': 'error',
       'vuejs-accessibility/no-static-element-interactions': 'error',
