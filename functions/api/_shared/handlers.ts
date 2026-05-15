@@ -31,6 +31,9 @@ export async function handleUpsertItem (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND id = ?'
   ).bind(listId, itemId).first<ItemRow>()
 
+  // LWW with strict `>`: on equal `u`, the incoming write is accepted.
+  // The client uses the inverse rule (existing wins on equal `u`) so both
+  // sides converge to the server's view on rare same-millisecond collisions.
   if (existing && existing.u > incoming.u) {
     return Response.json({ item: existing })
   }

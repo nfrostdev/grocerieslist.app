@@ -94,6 +94,10 @@ export const useListsStore = defineStore('lists', () => {
       replaceList(incoming)
       return
     }
+    // LWW with strict `>`: on equal `u`, the local row wins.
+    // Server-side upsert uses the same rule (existing wins on equal `u`), so
+    // both sides stay consistent and an item written at the exact same
+    // millisecond by two clients converges to whichever the server saw first.
     for (const inItem of incoming.i) {
       const localIdx = existing.i.findIndex(it => it.id === inItem.id)
       if (localIdx === -1) {

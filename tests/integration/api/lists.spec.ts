@@ -452,6 +452,14 @@ describe('POST /api/lists/:id/items/:itemId', () => {
     expect(body.item.u).toBe(2000)
   })
 
+  it('accepts incoming write on equal timestamps (documented LWW tie behavior)', async () => {
+    const { id, authToken } = await setup()
+    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: 'first', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const res = await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: 'second', c: 0, u: 1000, d: 0 }), id, 'item0001')
+    const body = await res.json() as { item: { q: string } }
+    expect(body.item.q).toBe('second')
+  })
+
   it('returns existing canonical row on stale write', async () => {
     const { id, authToken } = await setup()
     await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '2', c: 0, u: 2000, d: 0 }), id, 'item0001')
