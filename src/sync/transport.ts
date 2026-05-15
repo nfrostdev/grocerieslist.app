@@ -15,7 +15,8 @@ async function request<T> (
   try {
     const res = await fetch(input, init)
     if (!res.ok) return { ok: false, error: normError(res.status) }
-    const data = parseJson ? await res.json() as T : {} as T
+    const hasBody = parseJson && res.status !== 204 && res.headers.get('content-length') !== '0'
+    const data = hasBody ? await res.json() as T : {} as T
     return { ok: true, data }
   } catch {
     return { ok: false, error: { kind: 'network' } }
