@@ -141,8 +141,14 @@ function modifyItemQuantity (input: HTMLInputElement, id: string): void {
 }
 
 function modifyItemName (input: HTMLInputElement, id: string): void {
-  if (input.value) {
-    listsStore.updateItem(listId.value, id, { n: input.value })
+  const item = list.value!.i.find(i => i.id === id)
+  if (!item) return
+  const trimmed = input.value.trim()
+  if (trimmed !== '') {
+    listsStore.updateItem(listId.value, id, { n: trimmed })
+    input.value = trimmed
+  } else {
+    input.value = item.n
   }
 }
 
