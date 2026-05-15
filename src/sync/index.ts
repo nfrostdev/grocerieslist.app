@@ -33,9 +33,13 @@ export async function provision (
   return { joinUrl, listId: newListId }
 }
 
-export async function join (listId: string, token: string): Promise<boolean> {
+export type JoinResult = { ok: true } | { ok: false; reason: 'network' | 'invalid' }
+
+export async function join (listId: string, token: string): Promise<JoinResult> {
   const result = await joinList(listId, token)
-  if (!result.ok) return false
+  if (!result.ok) {
+    return { ok: false, reason: result.error.kind === 'network' ? 'network' : 'invalid' }
+  }
 
   applyJoinPayload(result.data)
   setMeta(listId, {
@@ -44,7 +48,7 @@ export async function join (listId: string, token: string): Promise<boolean> {
     lastCursor: result.data.cursor
   })
   startPoller(listId)
-  return true
+  return { ok: true }
 }
 
 export function startPolling (): void {

@@ -88,17 +88,23 @@ describe('sync/index — join', () => {
     vi.resetAllMocks()
   })
 
-  it('returns false when joinList fails', async () => {
+  it('returns reason: invalid on auth/server errors', async () => {
     mJoinList.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
-    expect(await join('list1', 'bad')).toBe(false)
+    expect(await join('list1', 'bad')).toEqual({ ok: false, reason: 'invalid' })
     expect(mStartPoller).not.toHaveBeenCalled()
   })
 
-  it('applies payload, saves meta, starts poller, and returns true', async () => {
+  it('returns reason: network on network errors so callers can retry', async () => {
+    mJoinList.mockResolvedValue({ ok: false, error: { kind: 'network' } })
+    expect(await join('list1', 'tok')).toEqual({ ok: false, reason: 'network' })
+    expect(mStartPoller).not.toHaveBeenCalled()
+  })
+
+  it('applies payload, saves meta, starts poller, and returns ok: true', async () => {
     const data = { listId: 'list2', role: 'editor' as const, name: 'Shared', version: 1, cursor: 1700, items: [] }
     mJoinList.mockResolvedValue({ ok: true, data })
 
-    expect(await join('list2', 'tok2')).toBe(true)
+    expect(await join('list2', 'tok2')).toEqual({ ok: true })
     expect(mApplyJoinPayload).toHaveBeenCalledWith(data)
     expect(getMeta('list2')).toEqual({ authToken: 'tok2', role: 'editor', lastCursor: 1700 })
     expect(mStartPoller).toHaveBeenCalledWith('list2')
