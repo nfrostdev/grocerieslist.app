@@ -22,11 +22,11 @@ export async function provision (
   const result = await provisionList(list.n, items)
   if (!result.ok) return null
 
-  const { id: newListId, authToken } = result.data
+  const { id: newListId, authToken, role } = result.data
   const lastCursor = items.reduce((m, i) => Math.max(m, i.u), 0)
 
   store.updateListId(list.id, newListId)
-  setMeta(newListId, { authToken, role: 'owner', lastCursor })
+  setMeta(newListId, { authToken, role, lastCursor })
   startPoller(newListId)
 
   const joinUrl = `${window.location.origin}/#join=${newListId}.${authToken}`

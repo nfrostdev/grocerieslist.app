@@ -1,6 +1,10 @@
+import type { Role } from '../../shared/roles'
+
+export type { Role }
+
 export interface SyncMeta {
   authToken: string
-  role: 'owner' | 'editor'
+  role: Role
   lastCursor: number
   shareToken?: string
 }
@@ -26,11 +30,12 @@ export interface ItemPayload {
 export interface ProvisionResponse {
   id: string
   authToken: string
+  role: Role
 }
 
 export interface JoinResponse {
   listId: string
-  role: 'owner' | 'editor'
+  role: Role
   name: string
   version: number
   cursor: number
