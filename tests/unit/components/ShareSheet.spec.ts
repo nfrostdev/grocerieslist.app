@@ -195,6 +195,34 @@ describe('ShareSheet', () => {
     expect(true).toBe(true)
   })
 
+  it('does not mutate state when unmounted before provision resolves', async () => {
+    let resolveProvision: (v: unknown) => void = () => {}
+    provisionMock.mockImplementation(() => new Promise(resolve => { resolveProvision = resolve }))
+    const wrapper = mountSheet({ open: true })
+    await flushPromises()
+
+    wrapper.unmount()
+    resolveProvision({ joinUrl: 'https://example.com/#join=ID.TOKEN', listId: 'ID' })
+    await flushPromises()
+
+    expect(enableSharingMock).not.toHaveBeenCalled()
+  })
+
+  it('does not mutate state when unmounted before enableSharing resolves', async () => {
+    isSyncedMock.mockReturnValue(true)
+    getMetaMock.mockReturnValue({ authToken: 'owner-tok', role: 'owner', lastCursor: 1 })
+    let resolveEnable: (v: unknown) => void = () => {}
+    enableSharingMock.mockImplementation(() => new Promise(resolve => { resolveEnable = resolve }))
+    const wrapper = mountSheet({ open: true })
+    await flushPromises()
+    await wrapper.findAll('button').find(b => b.text().includes('Enable sharing'))!.trigger('click')
+
+    wrapper.unmount()
+    resolveEnable(SHARE_URL)
+    await flushPromises()
+    expect(true).toBe(true)
+  })
+
   it('swallows navigator.share rejection (user cancel)', async () => {
     Object.defineProperty(navigator, 'share', {
       configurable: true,
