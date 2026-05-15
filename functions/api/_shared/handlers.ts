@@ -196,9 +196,14 @@ export async function handleMintToken (
   const tokenHash = await hashToken(authToken)
   const now = Date.now()
 
-  await db.prepare(
-    'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
-  ).bind(tokenHash, listId, 'editor', now).run()
+  // Replace any prior editor rows for this list so enable/disable cycles
+  // don't grow list_tokens unbounded over the lifetime of a list.
+  await db.batch([
+    db.prepare('DELETE FROM list_tokens WHERE list_id = ? AND role = ?').bind(listId, 'editor'),
+    db.prepare(
+      'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(tokenHash, listId, 'editor', now)
+  ])
 
   return Response.json({ token: authToken })
 }
@@ -216,8 +221,8 @@ export async function handleRevokeToken (
   }
 
   await db.prepare(
-    'UPDATE list_tokens SET revoked_at = ? WHERE list_id = ? AND role = ?'
-  ).bind(Date.now(), listId, 'editor').run()
+    'DELETE FROM list_tokens WHERE list_id = ? AND role = ?'
+  ).bind(listId, 'editor').run()
 
   return Response.json({})
 }
