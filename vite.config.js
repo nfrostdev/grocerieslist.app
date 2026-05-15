@@ -37,7 +37,9 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**', 'shared/**'],
-      exclude: ['src/main.ts', 'src/router/**', 'src/**/*.d.ts', 'src/assets/**', 'src/sync/types.ts'],
+      // Excludes are limited to type-only declarations and non-runtime assets.
+      // Do NOT add runtime modules here without also gating them on a test.
+      exclude: ['src/main.ts', 'src/router/**', '**/*.d.ts', 'src/assets/**', 'src/**/types.ts', 'shared/**/types.ts'],
       thresholds: {
         lines: 80,
         functions: 80,
