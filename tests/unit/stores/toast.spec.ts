@@ -50,6 +50,27 @@ describe('useToastStore', () => {
     expect(store.toasts).toHaveLength(0)
   })
 
+  it('manual dismiss cancels the auto-dismiss timer (no post-unmount mutation)', () => {
+    const store = useToastStore()
+    store.add('One')
+    const id = store.toasts[0].id
+    store.dismiss(id)
+    store.add('Two')
+    vi.advanceTimersByTime(5000)
+    expect(store.toasts).toHaveLength(0)
+  })
+
+  it('reset clears all toasts and pending timers', () => {
+    const store = useToastStore()
+    store.add('One')
+    store.add('Two')
+    expect(store.toasts).toHaveLength(2)
+    store.reset()
+    expect(store.toasts).toHaveLength(0)
+    vi.advanceTimersByTime(10000)
+    expect(store.toasts).toHaveLength(0)
+  })
+
   it('multiple toasts each auto-dismiss independently', () => {
     const store = useToastStore()
     store.add('First')
