@@ -4,7 +4,7 @@ import { provisionList, joinList, mintToken, revokeToken, deleteListRequest } fr
 import { applyJoinPayload } from './reconcile'
 import { getMeta, setMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
 import { startPoller, stopPoller } from './poll'
-import { startDrainer } from './queue'
+import { startDrainer, enqueue } from './queue'
 import { cleanupListLocally } from './cleanup'
 
 export { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
@@ -19,6 +19,9 @@ export async function provision (
 ): Promise<{ joinUrl: string; listId: string } | null> {
   const store = useListsStore()
   const items = list.i.filter(i => !i.d)
+  // Snapshot id→u for the items sent in the provision body so we can detect
+  // items added or modified while the POST was in flight.
+  const sentSnapshot = new Map(items.map(i => [i.id, i.u]))
   const result = await provisionList(list.n, items)
   if (!result.ok) return null
 
@@ -27,6 +30,23 @@ export async function provision (
 
   store.updateListId(list.id, newListId)
   setMeta(newListId, { authToken, role, lastCursor })
+
+  // Items added or modified between the provision call and its response
+  // could not be enqueued at the time (no meta yet) and were not in the
+  // provision body. Enqueue them now so they reach the server.
+  const currentList = store.getListFromId(newListId)
+  if (currentList) {
+    for (const it of currentList.i) {
+      if (sentSnapshot.get(it.id) !== it.u) {
+        enqueue({
+          kind: 'upsertItem',
+          listId: newListId,
+          item: { id: it.id, n: it.n, q: it.q, c: it.c, u: it.u, d: it.d }
+        })
+      }
+    }
+  }
+
   startPoller(newListId)
 
   const joinUrl = `${window.location.origin}/#join=${newListId}.${authToken}`
