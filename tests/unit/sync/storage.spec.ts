@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { getSyncMetaMap, saveSyncMetaMap, getMeta, setMeta, removeMeta } from '@/sync/storage'
 
 const META = { authToken: 'tok', role: 'owner' as const, lastCursor: 1 }
 
 describe('sync/storage', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => vi.restoreAllMocks())
 
   it('getSyncMetaMap returns {} when nothing stored', () => {
     expect(getSyncMetaMap()).toEqual({})
@@ -13,6 +17,24 @@ describe('sync/storage', () => {
   it('getSyncMetaMap returns {} when stored value is invalid JSON', () => {
     localStorage.setItem('syncMeta', 'not-json')
     expect(getSyncMetaMap()).toEqual({})
+  })
+
+  it('getSyncMetaMap backs up corrupted blob and warns', () => {
+    localStorage.setItem('syncMeta', '{not valid json')
+    expect(getSyncMetaMap()).toEqual({})
+    expect(console.warn).toHaveBeenCalled()
+    const backups = Object.keys(localStorage).filter(k => k.startsWith('syncMeta.corrupted.'))
+    expect(backups).toHaveLength(1)
+    expect(localStorage.getItem(backups[0])).toBe('{not valid json')
+    expect(localStorage.getItem('syncMeta')).toBeNull()
+  })
+
+  it('getSyncMetaMap backs up non-object JSON (array or null)', () => {
+    localStorage.setItem('syncMeta', '[]')
+    expect(getSyncMetaMap()).toEqual({})
+    expect(console.warn).toHaveBeenCalled()
+    const backups = Object.keys(localStorage).filter(k => k.startsWith('syncMeta.corrupted.'))
+    expect(backups).toHaveLength(1)
   })
 
   it('saveSyncMetaMap round-trips through getSyncMetaMap', () => {
