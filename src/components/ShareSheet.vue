@@ -117,6 +117,7 @@ async function build () {
 
   if (!sync.isSynced(capturedList.id)) {
     const result = await sync.provision(capturedList)
+    if (!isMounted) return
     if (!result) {
       state.value = 'error'
       return
@@ -124,6 +125,7 @@ async function build () {
     provisionedListId = result.listId
     // Auto-enable sharing immediately after provisioning
     const url = await sync.enableSharing(capturedList.id)
+    if (!isMounted) return
     if (url) await showShareLink(url)
     else state.value = 'error'
     return
@@ -148,18 +150,22 @@ async function build () {
 async function showShareLink (url: string) {
   joinUrl.value = url
   const qrcodeMod = await import('qrcode')
+  if (!isMounted) return
   const QRCode = qrcodeMod.default ?? qrcodeMod
-  qrSvg.value = await QRCode.toString(url, {
+  const svg = await QRCode.toString(url, {
     type: 'svg',
     margin: 1,
     color: { dark: '#111827', light: '#ffffff' }
   })
+  if (!isMounted) return
+  qrSvg.value = svg
   state.value = 'sharing'
 }
 
 async function onEnableSharing () {
   enabling.value = true
   const url = await sync.enableSharing(props.list.id)
+  if (!isMounted) return
   enabling.value = false
   if (!url) {
     announce('Could not enable sharing — check your connection')
@@ -171,6 +177,7 @@ async function onEnableSharing () {
 async function onStopSharing () {
   stopping.value = true
   const ok = await sync.disableSharing(props.list.id)
+  if (!isMounted) return
   stopping.value = false
   if (!ok) {
     announce('Could not stop sharing — check your connection')
@@ -236,6 +243,7 @@ function confirmDelete () {
 
 async function onDeleteConfirmed () {
   const ok = await sync.deleteList(props.list.id)
+  if (!isMounted) return
   if (ok) {
     close()
     emit('deleted')
