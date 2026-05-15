@@ -129,8 +129,7 @@ function addItemToList (): void {
   itemName.value!.focus()
 }
 
-function modifyItemQuantity (event: Event, id: string): void {
-  const input = event.target as HTMLInputElement
+function modifyItemQuantity (input: HTMLInputElement, id: string): void {
   const item = list.value!.i.find(i => i.id === id)
   if (!item) return
   const trimmed = input.value.trim()
@@ -141,8 +140,7 @@ function modifyItemQuantity (event: Event, id: string): void {
   }
 }
 
-function modifyItemName (event: Event, id: string): void {
-  const input = event.target as HTMLInputElement
+function modifyItemName (input: HTMLInputElement, id: string): void {
   if (input.value) {
     listsStore.updateItem(listId.value, id, { n: input.value })
   }

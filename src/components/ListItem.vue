@@ -15,7 +15,7 @@
                :id="`item-qty-${item.id}`"
                :value="item.q"
                class="item__quantity__input"
-               @change="$emit('update:quantity', $event)"/>
+               @change="onQuantityChange"/>
       </div>
       <label :for="`item-name-${item.id}`" class="sr-only">{{ item.n }} Name</label>
       <input type="text"
@@ -23,7 +23,7 @@
              :value="item.n"
              :ref="nameRef"
              class="item__name"
-             @change="$emit('update:name', $event)"/>
+             @change="onNameChange"/>
       <button @click="$emit('delete')"
               :aria-label="`Remove ${item.n} from this list`"
               class="item__icon--delete">
@@ -42,10 +42,18 @@ defineProps<{
   nameRef: (el: unknown) => void
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggle'): void
   (e: 'delete'): void
-  (e: 'update:name', event: Event): void
-  (e: 'update:quantity', event: Event): void
+  (e: 'update:name', input: HTMLInputElement): void
+  (e: 'update:quantity', input: HTMLInputElement): void
 }>()
+
+function onNameChange (event: Event): void {
+  emit('update:name', event.target as HTMLInputElement)
+}
+
+function onQuantityChange (event: Event): void {
+  emit('update:quantity', event.target as HTMLInputElement)
+}
 </script>
