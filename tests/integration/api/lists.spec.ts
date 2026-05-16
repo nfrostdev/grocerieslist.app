@@ -576,6 +576,25 @@ describe('POST /api/lists/:id/tokens', () => {
     const res = await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, { method: 'POST' }), id)
     expect(res.status).toBe(401)
   })
+
+  it('replaces prior editor rows on mint so list_tokens does not grow unbounded', async () => {
+    const { id, authToken } = await setup()
+    const countEditors = async () => {
+      const row = await db.prepare('SELECT COUNT(*) AS c FROM list_tokens WHERE list_id = ? AND role = ?')
+        .bind(id, 'editor').first<{ c: number }>()
+      return row?.c ?? 0
+    }
+    // Three enable→revoke cycles should not leave three editor rows behind.
+    for (let i = 0; i < 3; i++) {
+      await handleMintToken(db, mintReq(id, authToken), id)
+      await handleRevokeToken(db, new Request(`http://localhost/api/lists/${id}/tokens/revoke`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` }
+      }), id)
+    }
+    await handleMintToken(db, mintReq(id, authToken), id)
+    expect(await countEditors()).toBe(1)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -636,6 +655,18 @@ describe('POST /api/lists/:id/tokens/revoke', () => {
       method: 'POST'
     }), id)
     expect(res.status).toBe(401)
+  })
+
+  it('deletes editor rows so list_tokens does not retain revoked entries', async () => {
+    const { id, authToken } = await setup()
+    await handleMintToken(db, new Request(`http://localhost/api/lists/${id}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    }), id)
+    await handleRevokeToken(db, revokeReq(id, authToken), id)
+    const row = await db.prepare('SELECT COUNT(*) AS c FROM list_tokens WHERE list_id = ? AND role = ?')
+      .bind(id, 'editor').first<{ c: number }>()
+    expect(row?.c ?? 0).toBe(0)
   })
 })
 
