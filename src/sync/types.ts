@@ -13,8 +13,6 @@ export type SyncMetaMap = Record<string, SyncMeta>
 
 export interface PollPayload {
   cursor: number
-  name?: string
-  nameUpdatedAt?: number
   items: ItemPayload[]
 }
 
@@ -37,7 +35,6 @@ export interface JoinResponse {
   listId: string
   role: Role
   name: string
-  version: number
   cursor: number
   items: ItemPayload[]
 }

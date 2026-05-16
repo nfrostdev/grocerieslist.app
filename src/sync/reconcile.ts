@@ -8,7 +8,7 @@ export function applyPollPayload (listId: string, payload: PollPayload): void {
 
   store.mergeList({
     id: listId,
-    n: payload.name ?? existing.n,
+    n: existing.n,
     i: payload.items.map(item => ({
       id: item.id, n: item.n, q: item.q, c: item.c, u: item.u, d: item.d
     }))

@@ -19,12 +19,12 @@ describe('sync/reconcile', () => {
     it('merges server items into the local list', () => {
       const store = useListsStore()
       store.$patch({ lists: [{ id: 'abc', n: 'Groceries', i: [] }] })
-      applyPollPayload('abc', { cursor: 2, name: 'Groceries', items: [ITEM] })
+      applyPollPayload('abc', { cursor: 2, items: [ITEM] })
       expect(store.lists[0].i).toHaveLength(1)
       expect(store.lists[0].i[0].n).toBe('Milk')
     })
 
-    it('preserves local name when payload omits name', () => {
+    it('preserves the local name across a poll', () => {
       const store = useListsStore()
       store.$patch({ lists: [{ id: 'abc', n: 'My List', i: [] }] })
       applyPollPayload('abc', { cursor: 1, items: [] })
@@ -35,7 +35,7 @@ describe('sync/reconcile', () => {
   describe('applyJoinPayload', () => {
     it('inserts the incoming list when absent', () => {
       const store = useListsStore()
-      applyJoinPayload({ listId: 's1', role: 'editor', name: 'Shared', version: 1, cursor: 5, items: [ITEM] })
+      applyJoinPayload({ listId: 's1', role: 'editor', name: 'Shared', cursor: 5, items: [ITEM] })
       expect(store.lists).toHaveLength(1)
       expect(store.lists[0].n).toBe('Shared')
       expect(store.lists[0].i[0].n).toBe('Milk')
@@ -44,7 +44,7 @@ describe('sync/reconcile', () => {
     it('replaces an existing list with the same id', () => {
       const store = useListsStore()
       store.$patch({ lists: [{ id: 's1', n: 'Old', i: [] }] })
-      applyJoinPayload({ listId: 's1', role: 'editor', name: 'Updated', version: 2, cursor: 2, items: [] })
+      applyJoinPayload({ listId: 's1', role: 'editor', name: 'Updated', cursor: 2, items: [] })
       expect(store.lists).toHaveLength(1)
       expect(store.lists[0].n).toBe('Updated')
     })
