@@ -169,6 +169,13 @@ describe('lists store', () => {
       expect(store.lists[0].i[0].q).toBe('99')
     })
 
+    it('keeps the local item on equal timestamps (documented LWW tie behavior)', () => {
+      const store = useListsStore()
+      store.createList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: 'local', c: 0, u: 100, d: 0 }] })
+      store.mergeList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: 'remote', c: 0, u: 100, d: 0 }] })
+      expect(store.lists[0].i[0].q).toBe('local')
+    })
+
     it('leaves locally-tombstoned items alone when not in incoming', () => {
       const store = useListsStore()
       store.createList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: '1', c: 0, u: 1, d: 1 }] })
