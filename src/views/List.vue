@@ -19,7 +19,7 @@
              type="text" id="name" placeholder="Item Name"/>
 
       <label for="quantity" class="sr-only">Quantity</label>
-      <input v-model="quantity" required
+      <input v-model.number="quantity" required
              class="new-item__input new-item__input--number"
              min="1" max="2147483647"
              type="number" id="quantity"/>
