@@ -256,6 +256,30 @@ describe('POST /api/lists/:id/join', () => {
     }
   })
 
+  it('does not return soft-deleted items in the join payload', async () => {
+    const { id, authToken } = await provision()
+    const upsertReq = (itemId: string, item: object) => new Request(`http://localhost/api/lists/${id}/items/${itemId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify(item)
+    })
+    await handleUpsertItem(db, upsertReq('live01', { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'live01')
+    await handleUpsertItem(db, upsertReq('dead01', { n: 'Bread', q: '1', c: 0, u: 1500, d: 0 }), id, 'dead01')
+    await handleUpsertItem(db, upsertReq('dead01', { n: 'Bread', q: '1', c: 0, u: 2000, d: 1 }), id, 'dead01')
+
+    const req = new Request(`http://localhost/api/lists/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: authToken })
+    })
+    const res = await handleJoin(db, req, id)
+    const body = await res.json() as { items: Array<{ id: string }>, cursor: number }
+    const ids = body.items.map(i => i.id)
+    expect(ids).toEqual(['live01'])
+    // Cursor still reflects the latest write (including the tombstone) so poll deltas line up.
+    expect(body.cursor).toBe(2000)
+  })
+
   it('returns 401 when token belongs to a different list', async () => {
     const { authToken } = await provision('List A')
     const { id: otherId } = await provision('List B')

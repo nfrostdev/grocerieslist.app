@@ -167,11 +167,14 @@ export async function handleJoin (
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
   const { results: items } = await db.prepare(
-    'SELECT id, n, q, c, u, d FROM items WHERE list_id = ?'
+    'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND d = 0'
   ).bind(listId).all<ItemRow>()
 
-  const maxItemU = items.reduce((m, i) => Math.max(m, i.u), 0)
-  const cursor = Math.max(list.u, maxItemU)
+  const maxItemU = await db.prepare(
+    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
+  ).bind(listId).first<{ m: number }>()
+
+  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
 
   return Response.json({
     listId: list.id,
