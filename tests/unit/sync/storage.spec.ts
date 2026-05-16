@@ -72,4 +72,30 @@ describe('sync/storage', () => {
     removeMeta('gone')
     expect(getMeta('keep')).toEqual(META)
   })
+
+  it('getSyncMetaMap returns a stable cached reference across calls', () => {
+    setMeta('abc', META)
+    expect(getSyncMetaMap()).toBe(getSyncMetaMap())
+  })
+
+  it('getSyncMetaMap serves the cache without re-reading localStorage', () => {
+    setMeta('abc', META)
+    // Direct write bypasses saveSyncMetaMap, so the cache must not see it.
+    localStorage.setItem('syncMeta', JSON.stringify({ xyz: META }))
+    expect(getSyncMetaMap()).toEqual({ abc: META })
+  })
+
+  it('a storage event for syncMeta invalidates the cache', () => {
+    setMeta('abc', META)
+    localStorage.setItem('syncMeta', JSON.stringify({ xyz: META }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'syncMeta' }))
+    expect(getSyncMetaMap()).toEqual({ xyz: META })
+  })
+
+  it('a storage event for an unrelated key leaves the cache intact', () => {
+    setMeta('abc', META)
+    localStorage.setItem('syncMeta', JSON.stringify({ xyz: META }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'somethingElse' }))
+    expect(getSyncMetaMap()).toEqual({ abc: META })
+  })
 })
