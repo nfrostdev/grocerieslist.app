@@ -149,6 +149,23 @@ describe('List.vue', () => {
     expect(qtyInput.element.value).toBe('2')
   })
 
+  it('reverts to the previous name when input is whitespace-only', async () => {
+    const { wrapper, store } = await mountList()
+    const nameInput = wrapper.find<HTMLInputElement>('.item__name')
+    await nameInput.setValue('   ')
+    await nameInput.trigger('change')
+    expect(store.lists[0].i[0].n).toBe('Apples')
+    expect(nameInput.element.value).toBe('Apples')
+  })
+
+  it('trims surrounding whitespace from a renamed item', async () => {
+    const { wrapper, store } = await mountList()
+    const nameInput = wrapper.find<HTMLInputElement>('.item__name')
+    await nameInput.setValue('  Oranges  ')
+    await nameInput.trigger('change')
+    expect(store.lists[0].i[0].n).toBe('Oranges')
+  })
+
   it('shows the all-checked banner when every active item is checked', async () => {
     const { wrapper } = await mountList([makeItem({ c: 1 })])
     expect(wrapper.text()).toContain('checked off all your items')
