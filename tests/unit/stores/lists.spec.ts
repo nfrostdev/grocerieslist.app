@@ -30,6 +30,35 @@ describe('lists store', () => {
     expect(store.lists).toEqual([])
   })
 
+  describe('init corruption handling', () => {
+    afterEach(() => vi.restoreAllMocks())
+
+    it('quarantines an unparseable lists key and continues with empty state', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorage.setItem('lists', '{not valid json')
+      const store = useListsStore()
+
+      expect(() => store.init()).not.toThrow()
+      expect(store.lists).toEqual([])
+      expect(localStorage.getItem('lists')).toBeNull()
+
+      const backup = Object.keys(localStorage).find(k => k.startsWith('lists.corrupted.'))
+      expect(backup).toBeDefined()
+      expect(localStorage.getItem(backup!)).toBe('{not valid json')
+    })
+
+    it('quarantines a lists key holding a non-array value', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorage.setItem('lists', JSON.stringify({ id: 'a', n: 'oops' }))
+      const store = useListsStore()
+
+      expect(() => store.init()).not.toThrow()
+      expect(store.lists).toEqual([])
+      expect(localStorage.getItem('lists')).toBeNull()
+      expect(Object.keys(localStorage).some(k => k.startsWith('lists.corrupted.'))).toBe(true)
+    })
+  })
+
   it('createList appends a list and persists', () => {
     const store = useListsStore()
     store.createList(new List('Groceries', []))
@@ -45,6 +74,17 @@ describe('lists store', () => {
     store.deleteList(list.id)
     expect(store.lists).toHaveLength(0)
     expect(JSON.parse(localStorage.getItem('lists') ?? '[]')).toHaveLength(0)
+  })
+
+  it('deleteList is a no-op for a missing id and keeps other lists', () => {
+    const store = useListsStore()
+    const a = new List('A', [])
+    const b = new List('B', [])
+    store.createList(a)
+    store.createList(b)
+    store.deleteList('does-not-exist')
+    expect(store.lists).toHaveLength(2)
+    expect(JSON.parse(localStorage.getItem('lists') ?? '[]')).toHaveLength(2)
   })
 
   it('addItem sorts items alphabetically by name', () => {

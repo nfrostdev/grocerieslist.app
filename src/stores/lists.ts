@@ -33,9 +33,30 @@ export const useListsStore = defineStore('lists', () => {
     }
   }
 
+  function quarantineCorruptedLists (raw: string, reason: unknown): void {
+    const backupKey = `lists.corrupted.${Date.now()}`
+    console.warn('[lists] corrupted lists key — preserving to', backupKey, reason)
+    try {
+      localStorage.setItem(backupKey, raw)
+      localStorage.removeItem('lists')
+    } catch {
+      // Quota or storage gone — continue with empty state regardless.
+    }
+  }
+
   function init () {
     const raw = localStorage.getItem('lists')
-    if (raw) lists.value = JSON.parse(raw)
+    if (raw === null) return
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (!Array.isArray(parsed)) {
+        quarantineCorruptedLists(raw, 'unexpected shape')
+        return
+      }
+      lists.value = parsed as List[]
+    } catch (err) {
+      quarantineCorruptedLists(raw, err)
+    }
   }
 
   function writeList (listId: string, mutator: (list: List) => void) {
@@ -53,7 +74,9 @@ export const useListsStore = defineStore('lists', () => {
   }
 
   function deleteList (id: string) {
-    lists.value.splice(lists.value.findIndex(l => l.id === id), 1)
+    const idx = lists.value.findIndex(l => l.id === id)
+    if (idx === -1) return
+    lists.value.splice(idx, 1)
     persist()
   }
 
