@@ -176,5 +176,21 @@ describe('lists store', () => {
       expect(store.lists[0].i).toHaveLength(1)
       expect(store.lists[0].i[0].d).toBe(1)
     })
+
+    it('ignores an incoming tombstone that is older than the local edit', () => {
+      const store = useListsStore()
+      store.createList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: '99', c: 0, u: 200, d: 0 }] })
+      // Stale/replayed delete with an older timestamp must not clobber a fresher local edit.
+      store.mergeList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: '1', c: 0, u: 100, d: 1 }] })
+      expect(store.lists[0].i[0].d).toBe(0)
+      expect(store.lists[0].i[0].q).toBe('99')
+    })
+
+    it('accepts an incoming tombstone newer than the local edit', () => {
+      const store = useListsStore()
+      store.createList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: '1', c: 0, u: 100, d: 0 }] })
+      store.mergeList({ id: 'abc', n: 'L', i: [{ id: 'a', n: 'Apples', q: '1', c: 0, u: 200, d: 1 }] })
+      expect(store.lists[0].i[0].d).toBe(1)
+    })
   })
 })

@@ -98,7 +98,7 @@ export const useListsStore = defineStore('lists', () => {
       const localIdx = existing.i.findIndex(it => it.id === inItem.id)
       if (localIdx === -1) {
         existing.i.push(inItem)
-      } else if (inItem.u > existing.i[localIdx].u || inItem.d) {
+      } else if (inItem.u > existing.i[localIdx].u) {
         existing.i[localIdx] = inItem
       }
     }
