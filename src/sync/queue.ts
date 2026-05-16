@@ -73,7 +73,7 @@ function removeOpById (opId: string): void {
   saveQueue(loadQueue().filter(o => o.opId !== opId))
 }
 
-function removeOpsByListId (listId: string): void {
+export function purgeOpsForList (listId: string): void {
   saveQueue(loadQueue().filter(o => o.listId !== listId))
 }
 
@@ -115,7 +115,7 @@ async function flush (): Promise<void> {
     const op = q[0]
     const meta = getMeta(op.listId)
     if (!meta) {
-      removeOpsByListId(op.listId)
+      purgeOpsForList(op.listId)
       continue
     }
 
@@ -136,7 +136,7 @@ async function flush (): Promise<void> {
           : `"${listName}" was deleted.`,
         'error'
       )
-      removeOpsByListId(op.listId)
+      purgeOpsForList(op.listId)
       cleanupListLocally(op.listId)
     } else {
       await sleep(backoffMs)

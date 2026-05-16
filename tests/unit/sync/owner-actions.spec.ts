@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { enableSharing, disableSharing, deleteList, leaveList } from '@/sync'
 import { mintToken, revokeToken, deleteListRequest } from '@/sync/transport'
 import { stopPoller } from '@/sync/poll'
+import { purgeOpsForList } from '@/sync/queue'
 import { cleanupListLocally } from '@/sync/cleanup'
 import { getMeta, setMeta } from '@/sync/storage'
 
@@ -14,7 +15,7 @@ vi.mock('@/sync/transport', () => ({
 }))
 vi.mock('@/sync/poll', () => ({ startPoller: vi.fn(), stopPoller: vi.fn() }))
 vi.mock('@/sync/cleanup', () => ({ cleanupListLocally: vi.fn() }))
-vi.mock('@/sync/queue', () => ({ startDrainer: vi.fn(), enqueue: vi.fn() }))
+vi.mock('@/sync/queue', () => ({ startDrainer: vi.fn(), enqueue: vi.fn(), purgeOpsForList: vi.fn() }))
 vi.mock('@/sync/reconcile', () => ({ applyJoinPayload: vi.fn() }))
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }))
 
@@ -22,6 +23,7 @@ const mMintToken = vi.mocked(mintToken)
 const mRevokeToken = vi.mocked(revokeToken)
 const mDeleteListRequest = vi.mocked(deleteListRequest)
 const mStopPoller = vi.mocked(stopPoller)
+const mPurgeOpsForList = vi.mocked(purgeOpsForList)
 const mCleanupListLocally = vi.mocked(cleanupListLocally)
 
 const OWNER_META = { authToken: 'owner-tok', role: 'owner' as const, lastCursor: 1 }
@@ -112,21 +114,30 @@ describe('deleteList', () => {
     expect(mStopPoller).not.toHaveBeenCalled()
   })
 
-  it('returns true and calls stopPoller + cleanupListLocally on success', async () => {
+  it('returns true and calls stopPoller + purgeOpsForList + cleanupListLocally on success', async () => {
     setMeta('list1', OWNER_META)
     mDeleteListRequest.mockResolvedValue({ ok: true, data: {} as Record<string, never> })
 
     expect(await deleteList('list1')).toBe(true)
     expect(mDeleteListRequest).toHaveBeenCalledWith('list1', 'owner-tok')
     expect(mStopPoller).toHaveBeenCalledWith('list1')
+    expect(mPurgeOpsForList).toHaveBeenCalledWith('list1')
     expect(mCleanupListLocally).toHaveBeenCalledWith('list1')
+  })
+
+  it('does not purge ops when server returns error', async () => {
+    setMeta('list1', OWNER_META)
+    mDeleteListRequest.mockResolvedValue({ ok: false, error: { kind: 'network' } })
+    expect(await deleteList('list1')).toBe(false)
+    expect(mPurgeOpsForList).not.toHaveBeenCalled()
   })
 })
 
 describe('leaveList', () => {
-  it('calls stopPoller and cleanupListLocally', () => {
+  it('calls stopPoller, purgeOpsForList and cleanupListLocally', () => {
     leaveList('list1')
     expect(mStopPoller).toHaveBeenCalledWith('list1')
+    expect(mPurgeOpsForList).toHaveBeenCalledWith('list1')
     expect(mCleanupListLocally).toHaveBeenCalledWith('list1')
   })
 })

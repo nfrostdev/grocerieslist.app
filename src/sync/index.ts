@@ -4,7 +4,7 @@ import { provisionList, joinList, mintToken, revokeToken, deleteListRequest } fr
 import { applyJoinPayload } from './reconcile'
 import { getMeta, setMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
 import { startPoller, stopPoller } from './poll'
-import { startDrainer, enqueue } from './queue'
+import { startDrainer, enqueue, purgeOpsForList } from './queue'
 import { cleanupListLocally } from './cleanup'
 
 export { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
@@ -126,11 +126,13 @@ export async function deleteList (listId: string): Promise<boolean> {
   if (!result.ok) return false
 
   stopPoller(listId)
+  purgeOpsForList(listId)
   cleanupListLocally(listId)
   return true
 }
 
 export function leaveList (listId: string): void {
   stopPoller(listId)
+  purgeOpsForList(listId)
   cleanupListLocally(listId)
 }
