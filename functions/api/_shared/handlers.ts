@@ -9,6 +9,22 @@ function invalidListId (): Response {
   return Response.json({ error: 'invalid list id' }, { status: 400 })
 }
 
+// The sync cursor is the high-water mark of every `u` the client could have
+// missed: `list.u` plus the largest item `u`. Both handlePoll and handleJoin
+// hand this back so the next poll's `since` covers all writes — keep the rule
+// in one place.
+async function computeCursor (
+  db: D1Database,
+  listId: string,
+  list: Pick<ListRow, 'u'>
+): Promise<number> {
+  const maxItemU = await db.prepare(
+    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
+  ).bind(listId).first<{ m: number }>()
+
+  return Math.max(list.u, maxItemU?.m ?? 0)
+}
+
 export async function handleUpsertItem (
   db: D1Database,
   request: Request,
@@ -122,11 +138,7 @@ export async function handlePoll (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND u > ?'
   ).bind(listId, since).all<ItemRow>()
 
-  const maxItemU = await db.prepare(
-    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
-  ).bind(listId).first<{ m: number }>()
-
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = await computeCursor(db, listId, list)
 
   return Response.json({ version: list.version, cursor, items })
 }
@@ -164,11 +176,7 @@ export async function handleJoin (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND d = 0'
   ).bind(listId).all<ItemRow>()
 
-  const maxItemU = await db.prepare(
-    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
-  ).bind(listId).first<{ m: number }>()
-
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = await computeCursor(db, listId, list)
 
   return Response.json({
     listId: list.id,
