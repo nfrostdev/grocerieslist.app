@@ -81,7 +81,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
 
   await db.batch([
     db.prepare(
-      'INSERT INTO lists (id, name, u, version, created_at) VALUES (?, ?, 0, 1, ?)'
+      'INSERT INTO lists (id, name, version, created_at) VALUES (?, ?, 1, ?)'
     ).bind(listId, name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
@@ -113,8 +113,8 @@ export async function handlePoll (
   }
 
   const list = await db.prepare(
-    'SELECT id, u, version FROM lists WHERE id = ?'
-  ).bind(listId).first<Pick<ListRow, 'id' | 'u' | 'version'>>()
+    'SELECT id, version FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id' | 'version'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -126,7 +126,7 @@ export async function handlePoll (
     'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
   ).bind(listId).first<{ m: number }>()
 
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = maxItemU?.m ?? 0
 
   return Response.json({ version: list.version, cursor, items })
 }
@@ -155,8 +155,8 @@ export async function handleJoin (
   }
 
   const list = await db.prepare(
-    'SELECT id, name, u FROM lists WHERE id = ?'
-  ).bind(listId).first<Pick<ListRow, 'id' | 'name' | 'u'>>()
+    'SELECT id, name FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id' | 'name'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -168,7 +168,7 @@ export async function handleJoin (
     'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
   ).bind(listId).first<{ m: number }>()
 
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = maxItemU?.m ?? 0
 
   return Response.json({
     listId: list.id,
