@@ -7,7 +7,6 @@ export interface Env {
 export interface ListRow {
   id: string
   name: string
-  version: number
 }
 
 export interface ItemRow {

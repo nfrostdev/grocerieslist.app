@@ -49,14 +49,11 @@ export async function handleUpsertItem (
     return Response.json({ item: existing })
   }
 
-  await db.batch([
-    db.prepare(
-      `INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(list_id, id) DO UPDATE
-       SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
-    ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d),
-    db.prepare('UPDATE lists SET version = version + 1 WHERE id = ?').bind(listId)
-  ])
+  await db.prepare(
+    `INSERT INTO items (list_id, id, n, q, c, u, d) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(list_id, id) DO UPDATE
+     SET n=excluded.n, q=excluded.q, c=excluded.c, u=excluded.u, d=excluded.d`
+  ).bind(listId, itemId, incoming.n, incoming.q, incoming.c, incoming.u, incoming.d).run()
 
   return Response.json({ item: incoming })
 }
@@ -92,7 +89,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
 
   await db.batch([
     db.prepare(
-      'INSERT INTO lists (id, name, version, created_at) VALUES (?, ?, 1, ?)'
+      'INSERT INTO lists (id, name, created_at) VALUES (?, ?, ?)'
     ).bind(listId, name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
@@ -124,8 +121,8 @@ export async function handlePoll (
   }
 
   const list = await db.prepare(
-    'SELECT id, version FROM lists WHERE id = ?'
-  ).bind(listId).first<Pick<ListRow, 'id' | 'version'>>()
+    'SELECT id FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -135,7 +132,7 @@ export async function handlePoll (
 
   const cursor = await computeCursor(db, listId)
 
-  return Response.json({ version: list.version, cursor, items })
+  return Response.json({ cursor, items })
 }
 
 export async function handleJoin (
