@@ -59,6 +59,67 @@ describe('lists store', () => {
     })
   })
 
+  describe('tombstone GC', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    const item = (id: string, u: number, d: number) => ({ id, n: id, q: '1', c: 0, u, d })
+
+    it('init prunes soft-deleted items older than the 90-day window', () => {
+      const now = Date.now()
+      localStorage.setItem('lists', JSON.stringify([
+        { id: 'a', n: 'L', i: [item('stale', now - 91 * DAY, 1), item('fresh', now - DAY, 1)] }
+      ]))
+      const store = useListsStore()
+      store.init()
+      expect(store.lists[0].i.map(i => i.id)).toEqual(['fresh'])
+    })
+
+    it('init keeps active items regardless of age', () => {
+      const now = Date.now()
+      localStorage.setItem('lists', JSON.stringify([
+        { id: 'a', n: 'L', i: [item('old-active', now - 365 * DAY, 0)] }
+      ]))
+      const store = useListsStore()
+      store.init()
+      expect(store.lists[0].i.map(i => i.id)).toEqual(['old-active'])
+    })
+
+    it('init persists the pruned lists key', () => {
+      const now = Date.now()
+      localStorage.setItem('lists', JSON.stringify([
+        { id: 'a', n: 'L', i: [item('stale', now - 91 * DAY, 1)] }
+      ]))
+      useListsStore().init()
+      const persisted = JSON.parse(localStorage.getItem('lists') ?? '[]')
+      expect(persisted[0].i).toEqual([])
+    })
+
+    it('init keeps a stale tombstone the sync cursor has not passed', () => {
+      const now = Date.now()
+      localStorage.setItem('lists', JSON.stringify([
+        { id: 'a', n: 'L', i: [item('stale', now - 91 * DAY, 1)] }
+      ]))
+      localStorage.setItem('syncMeta', JSON.stringify({
+        a: { authToken: 't', role: 'editor', lastCursor: now - 95 * DAY }
+      }))
+      const store = useListsStore()
+      store.init()
+      expect(store.lists[0].i.map(i => i.id)).toEqual(['stale'])
+    })
+
+    it('init prunes a stale tombstone the sync cursor has passed', () => {
+      const now = Date.now()
+      localStorage.setItem('lists', JSON.stringify([
+        { id: 'a', n: 'L', i: [item('stale', now - 91 * DAY, 1)] }
+      ]))
+      localStorage.setItem('syncMeta', JSON.stringify({
+        a: { authToken: 't', role: 'editor', lastCursor: now - DAY }
+      }))
+      const store = useListsStore()
+      store.init()
+      expect(store.lists[0].i).toEqual([])
+    })
+  })
+
   it('createList appends a list and persists', () => {
     const store = useListsStore()
     store.createList(new List('Groceries', []))

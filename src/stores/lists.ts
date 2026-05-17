@@ -10,6 +10,12 @@ function sortItems (list: List) {
   list.i.sort((a, b) => a.n.localeCompare(b.n, undefined, { sensitivity: 'base' }))
 }
 
+// Soft-deleted items (`d = 1`) are pruned from localStorage once they are
+// older than the server's tombstone GC window. By then the server has
+// already dropped them (.github/workflows/gc-tombstones.yml), so no poll
+// can re-deliver them — keeping them locally is just unbounded growth.
+const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
+
 export const useListsStore = defineStore('lists', () => {
   const lists = ref<List[]>([])
   let lastPersistFailed = false
@@ -44,6 +50,28 @@ export const useListsStore = defineStore('lists', () => {
     }
   }
 
+  // Prunes soft-deleted items older than the server GC window. A synced
+  // list also requires the tombstone to sit at or below `lastCursor` — i.e.
+  // this client has already polled past it — so a not-yet-synced local
+  // delete is never dropped before the server has seen it.
+  function gcTombstones () {
+    const cutoff = Date.now() - TOMBSTONE_TTL_MS
+    let pruned = false
+    for (const list of lists.value) {
+      const meta = getMeta(list.id)
+      const kept = list.i.filter(item => {
+        if (item.d !== 1 || item.u >= cutoff) return true
+        if (meta && item.u >= (meta.lastCursor ?? 0)) return true
+        return false
+      })
+      if (kept.length !== list.i.length) {
+        list.i = kept
+        pruned = true
+      }
+    }
+    if (pruned) persist()
+  }
+
   function init () {
     const raw = localStorage.getItem('lists')
     if (raw === null) return
@@ -54,6 +82,7 @@ export const useListsStore = defineStore('lists', () => {
         return
       }
       lists.value = parsed as List[]
+      gcTombstones()
     } catch (err) {
       quarantineCorruptedLists(raw, err)
     }
@@ -144,6 +173,7 @@ export const useListsStore = defineStore('lists', () => {
     lists,
     getListFromId,
     init,
+    gcTombstones,
     createList,
     deleteList,
     addItem,
