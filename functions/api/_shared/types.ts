@@ -8,7 +8,6 @@ export interface ListRow {
   id: string
   name: string
   u: number
-  version: number
 }
 
 export interface ItemRow {

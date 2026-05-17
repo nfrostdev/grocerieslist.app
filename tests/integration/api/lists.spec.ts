@@ -308,7 +308,7 @@ describe('GET /api/lists/:id?since=', () => {
     return res.json() as Promise<{ id: string; authToken: string }>
   }
 
-  it('returns version and items since=0', async () => {
+  it('returns items since=0', async () => {
     const { id, authToken } = await provision()
 
     const req = new Request(`http://localhost/api/lists/${id}?since=0`, {
@@ -316,8 +316,7 @@ describe('GET /api/lists/:id?since=', () => {
     })
     const res = await handlePoll(db, req, id)
     expect(res.status).toBe(200)
-    const body = await res.json() as { version: number; items: unknown[] }
-    expect(body.version).toBe(1)
+    const body = await res.json() as { items: unknown[] }
     expect(body.items).toEqual([])
   })
 
@@ -455,16 +454,6 @@ describe('POST /api/lists/:id/items/:itemId', () => {
     expect(body.item.u).toBe(1000)
   })
 
-  it('increments list version on insert', async () => {
-    const { id, authToken } = await setup()
-    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Eggs', q: '6', c: 0, u: 1000, d: 0 }), id, 'item0001')
-    const pollReq = new Request(`http://localhost/api/lists/${id}?since=0`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    const body = await handlePoll(db, pollReq, id).then(r => r.json() as Promise<{ version: number }>)
-    expect(body.version).toBe(2)
-  })
-
   it('accepts a newer write and returns canonical', async () => {
     const { id, authToken } = await setup()
     await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
@@ -491,15 +480,6 @@ describe('POST /api/lists/:id/items/:itemId', () => {
     const body = await res.json() as { item: { q: string; u: number } }
     expect(body.item.q).toBe('2') // canonical wins
     expect(body.item.u).toBe(2000)
-  })
-
-  it('does not increment version on stale write', async () => {
-    const { id, authToken } = await setup()
-    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '2', c: 0, u: 2000, d: 0 }), id, 'item0001')
-    await handleUpsertItem(db, upsertReq(id, 'item0001', authToken, { n: 'Milk', q: '1', c: 0, u: 1000, d: 0 }), id, 'item0001')
-    const body = await handlePoll(db, new Request(`http://localhost/api/lists/${id}?since=0`, { headers: { Authorization: `Bearer ${authToken}` } }), id)
-      .then(r => r.json() as Promise<{ version: number }>)
-    expect(body.version).toBe(2) // only the first upsert bumped version
   })
 
   it('stores and returns a tombstone', async () => {
