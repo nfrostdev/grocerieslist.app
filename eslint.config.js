@@ -6,7 +6,7 @@ import vueStandard from '@vue/eslint-config-standard'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.wrangler/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.wrangler/**', 'worker-configuration.d.ts'] },
   js.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   ...tseslint.configs.recommended,
