@@ -9,6 +9,17 @@ function invalidListId (): Response {
   return Response.json({ error: 'invalid list id' }, { status: 400 })
 }
 
+// The sync cursor is the high-water mark of every item `u` the client could
+// have missed. Both handlePoll and handleJoin hand this back so the next
+// poll's `since` covers all writes — keep the rule in one place.
+async function computeCursor (db: D1Database, listId: string): Promise<number> {
+  const maxItemU = await db.prepare(
+    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
+  ).bind(listId).first<{ m: number }>()
+
+  return maxItemU?.m ?? 0
+}
+
 export async function handleUpsertItem (
   db: D1Database,
   request: Request,
@@ -78,7 +89,7 @@ export async function handleProvision (db: D1Database, request: Request): Promis
 
   await db.batch([
     db.prepare(
-      'INSERT INTO lists (id, name, u, created_at) VALUES (?, ?, 0, ?)'
+      'INSERT INTO lists (id, name, created_at) VALUES (?, ?, ?)'
     ).bind(listId, name, now),
     db.prepare(
       'INSERT INTO list_tokens (token_hash, list_id, role, created_at) VALUES (?, ?, ?, ?)'
@@ -110,8 +121,8 @@ export async function handlePoll (
   }
 
   const list = await db.prepare(
-    'SELECT id, u FROM lists WHERE id = ?'
-  ).bind(listId).first<Pick<ListRow, 'id' | 'u'>>()
+    'SELECT id FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -119,11 +130,7 @@ export async function handlePoll (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND u > ?'
   ).bind(listId, since).all<ItemRow>()
 
-  const maxItemU = await db.prepare(
-    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
-  ).bind(listId).first<{ m: number }>()
-
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = await computeCursor(db, listId)
 
   return Response.json({ cursor, items })
 }
@@ -152,8 +159,8 @@ export async function handleJoin (
   }
 
   const list = await db.prepare(
-    'SELECT id, name, u FROM lists WHERE id = ?'
-  ).bind(listId).first<Pick<ListRow, 'id' | 'name' | 'u'>>()
+    'SELECT id, name FROM lists WHERE id = ?'
+  ).bind(listId).first<Pick<ListRow, 'id' | 'name'>>()
 
   if (!list) return Response.json({ error: 'Not Found' }, { status: 404 })
 
@@ -161,11 +168,7 @@ export async function handleJoin (
     'SELECT id, n, q, c, u, d FROM items WHERE list_id = ? AND d = 0'
   ).bind(listId).all<ItemRow>()
 
-  const maxItemU = await db.prepare(
-    'SELECT COALESCE(MAX(u), 0) AS m FROM items WHERE list_id = ?'
-  ).bind(listId).first<{ m: number }>()
-
-  const cursor = Math.max(list.u, maxItemU?.m ?? 0)
+  const cursor = await computeCursor(db, listId)
 
   return Response.json({
     listId: list.id,

@@ -338,7 +338,7 @@ describe('GET /api/lists/:id?since=', () => {
     expect(body.items[0].id).toBe('bbb22222')
   })
 
-  it('returns cursor = max(list.u, max items.u)', async () => {
+  it('returns cursor = max item u', async () => {
     const items = [
       { id: 'aaa11111', n: 'A', q: '', c: 0, u: 1000, d: 0 },
       { id: 'bbb22222', n: 'B', q: '', c: 0, u: 5000, d: 0 }
