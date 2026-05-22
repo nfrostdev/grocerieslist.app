@@ -1,5 +1,5 @@
 <template>
-  <div class="toast-container">
+  <dialog ref="dialogEl" class="toast-container" aria-label="Notifications">
     <div v-for="toast in toastStore.toasts"
          :key="toast.id"
          class="toast"
@@ -12,20 +12,42 @@
         <font-awesome-icon icon="times-circle"/>
       </button>
     </div>
-  </div>
+  </dialog>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useToastStore } from '@/stores/toast'
 
 const toastStore = useToastStore()
+const dialogEl = ref<HTMLDialogElement | null>(null)
+
+// A <dialog> opened with .show() is promoted to the browser's top layer,
+// which sits above any z-index — including ::backdrop and other dialogs.
+// Re-opening on every toast count change brings the toasts back to the top
+// of the top-layer stack so a later showModal() (ShareSheet, ConfirmModal)
+// cannot bury them.
+watch(() => toastStore.toasts.length, (n) => {
+  const dlg = dialogEl.value
+  if (!dlg) return
+  if (dlg.open) dlg.close()
+  if (n > 0) dlg.show()
+})
 </script>
 
 <style lang="scss">
 @reference "../assets/main.css";
 
 .toast-container {
-  @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none w-full max-w-sm px-4;
+  // Reset UA dialog chrome — we just want the top-layer promotion.
+  @apply m-0 border-0 bg-transparent p-0;
+  @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex-col gap-2 items-center pointer-events-none w-full max-w-sm px-4;
+  // dialog defaults to display: none; only flex when open.
+  display: none;
+
+  &[open] {
+    @apply flex;
+  }
 }
 
 .toast {
