@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { provision, join } from '@/sync'
 import { provisionList, joinList, upsertItem } from '@/sync/transport'
-import { startPoller } from '@/sync/poll'
+import { startPoller, stopPoller } from '@/sync/poll'
 import { applyJoinPayload } from '@/sync/reconcile'
 import { getMeta } from '@/sync/storage'
 import { _resetForTest as resetQueueForTest } from '@/sync/queue'
@@ -14,7 +14,7 @@ vi.mock('@/sync/transport', () => ({
   joinList: vi.fn(),
   upsertItem: vi.fn().mockResolvedValue({ ok: false, error: { kind: 'network' as const } })
 }))
-vi.mock('@/sync/poll', () => ({ startPoller: vi.fn() }))
+vi.mock('@/sync/poll', () => ({ startPoller: vi.fn(), stopPoller: vi.fn() }))
 vi.mock('@/sync/reconcile', () => ({ applyJoinPayload: vi.fn() }))
 
 const mProvisionList = vi.mocked(provisionList)
@@ -173,5 +173,18 @@ describe('sync/index — join', () => {
     expect(mApplyJoinPayload).toHaveBeenCalledWith(data)
     expect(getMeta('list2')).toEqual({ authToken: 'tok2', role: 'editor', lastCursor: 1700 })
     expect(mStartPoller).toHaveBeenCalledWith('list2')
+  })
+
+  it('stops any prior poller before joining so a stale-token 401 cannot wipe the list', async () => {
+    const data = { listId: 'list3', role: 'editor' as const, name: 'Rotated', version: 1, cursor: 0, items: [] }
+    mJoinList.mockResolvedValue({ ok: true, data })
+
+    await join('list3', 'fresh')
+
+    expect(vi.mocked(stopPoller)).toHaveBeenCalledWith('list3')
+    // Ordering: the stop must occur before the new poller is registered.
+    const stopOrder = vi.mocked(stopPoller).mock.invocationCallOrder[0]
+    const startOrder = mStartPoller.mock.invocationCallOrder[0]
+    expect(stopOrder).toBeLessThan(startOrder)
   })
 })

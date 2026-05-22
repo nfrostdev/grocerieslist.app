@@ -64,12 +64,22 @@ describe('App.vue — handleJoinFragment', () => {
     expect(router.currentRoute.value.params.id).toBe('listid123')
   })
 
-  it('navigates without calling join when list is already synced', async () => {
-    vi.mocked(sync.getMeta).mockReturnValue({ authToken: 'tok', role: 'owner', lastCursor: 1 })
+  it('navigates without calling join when list is already synced with the same token', async () => {
+    vi.mocked(sync.getMeta).mockReturnValue({ authToken: 'tokenxyz', role: 'editor', lastCursor: 1 })
     window.location.hash = '#join=listid123.tokenxyz'
     const router = makeRouter()
     await mountApp(router)
     expect(sync.join).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('List')
+  })
+
+  it('re-joins when stored meta has a different token (token rotated by owner)', async () => {
+    vi.mocked(sync.getMeta).mockReturnValue({ authToken: 'oldtoken', role: 'editor', lastCursor: 1 })
+    vi.mocked(sync.join).mockResolvedValue({ ok: true })
+    window.location.hash = '#join=listid123.newtoken'
+    const router = makeRouter()
+    await mountApp(router)
+    expect(sync.join).toHaveBeenCalledWith('listid123', 'newtoken')
     expect(router.currentRoute.value.name).toBe('List')
   })
 

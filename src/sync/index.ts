@@ -56,6 +56,12 @@ export async function provision (
 export type JoinResult = { ok: true } | { ok: false; reason: 'network' | 'invalid' }
 
 export async function join (listId: string, token: string): Promise<JoinResult> {
+  // Halt any prior poller bound to a stale auth token. Without this, an
+  // in-flight pollList() with the old token can 401 after we've already
+  // setMeta() with the new one — the poll's stopped-state check then
+  // discards that result before the auth-lost path can delete the list.
+  stopPoller(listId)
+
   const result = await joinList(listId, token)
   if (!result.ok) {
     return { ok: false, reason: result.error.kind === 'network' ? 'network' : 'invalid' }
