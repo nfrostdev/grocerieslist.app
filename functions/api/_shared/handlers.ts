@@ -154,7 +154,12 @@ export async function handleJoin (
     'SELECT list_id, role, revoked_at FROM list_tokens WHERE token_hash = ? AND list_id = ?'
   ).bind(hash, listId).first<TokenRow>()
 
-  if (!tokenRow || tokenRow.revoked_at != null) {
+  // Owner tokens are bound to the provisioning device and are NOT shareable
+  // — reject them at /join even though the row would otherwise be valid.
+  // Mismatched roles would otherwise let an "editor" client wield owner
+  // privileges (mint, revoke, delete) because subsequent endpoints re-check
+  // the token's role server-side from the same row.
+  if (!tokenRow || tokenRow.revoked_at != null || tokenRow.role !== ROLES.editor) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
