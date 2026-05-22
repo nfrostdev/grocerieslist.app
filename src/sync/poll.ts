@@ -77,6 +77,10 @@ async function runPoller (listId: string, state: PollState): Promise<void> {
         map[listId].lastCursor = result.data.cursor
         saveSyncMetaMap(map)
       }
+      // Long-lived PWA tabs can run for weeks without a cold start, so the
+      // store.init() GC never re-runs. Piggyback on the poll's settle moment
+      // to prune expired tombstones (cheap; LWW dedup keeps it idempotent).
+      useListsStore().gcTombstones()
       await sleep(POLL_INTERVAL_MS)
     } else if (result.error.kind === 'unauthorized' || result.error.kind === 'not-found') {
       const listName = useListsStore().getListFromId(listId)?.n ?? 'a shared list'
