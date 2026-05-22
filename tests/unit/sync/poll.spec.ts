@@ -12,7 +12,8 @@ vi.mock('@/sync/storage', () => ({
   saveSyncMetaMap: vi.fn()
 }))
 vi.mock('@/sync/cleanup', () => ({ cleanupListLocally: vi.fn() }))
-vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn(() => ({ getListFromId: vi.fn(() => ({ n: 'Test List' })) })) }))
+const mGcTombstones = vi.fn()
+vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn(() => ({ getListFromId: vi.fn(() => ({ n: 'Test List' })), gcTombstones: mGcTombstones })) }))
 vi.mock('@/stores/toast', () => ({ useToastStore: vi.fn(() => ({ add: vi.fn() })) }))
 
 const mGetMeta = vi.mocked(getMeta)
@@ -50,6 +51,30 @@ describe('sync/poll', () => {
     startPoller('nometa1')
     await vi.runAllTimersAsync()
     expect(mPollList).not.toHaveBeenCalled()
+  })
+
+  it('runPoller: invokes gcTombstones after a successful poll', async () => {
+    mGetMeta
+      .mockReturnValueOnce({ authToken: 'tok', lastCursor: 0, role: 'owner' })
+      .mockReturnValue(null)
+    mPollList.mockResolvedValue({ ok: true, data: { cursor: 1, items: [] } })
+
+    startPoller('gc1')
+    await vi.runAllTimersAsync()
+
+    expect(mGcTombstones).toHaveBeenCalled()
+  })
+
+  it('runPoller: does NOT invoke gcTombstones when poll fails (network)', async () => {
+    mGetMeta
+      .mockReturnValueOnce({ authToken: 'tok', lastCursor: 0, role: 'owner' })
+      .mockReturnValue(null)
+    mPollList.mockResolvedValue({ ok: false, error: { kind: 'network' } })
+
+    startPoller('gc2')
+    await vi.runAllTimersAsync()
+
+    expect(mGcTombstones).not.toHaveBeenCalled()
   })
 
   it('runPoller: calls pollList, applyPollPayload, and stores returned cursor on success', async () => {
