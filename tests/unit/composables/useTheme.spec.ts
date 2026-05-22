@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 let mockMatches = false
 const mockAddEventListener = vi.fn()
@@ -28,6 +28,10 @@ describe('useTheme', () => {
     mockMatches = false
     mockAddEventListener.mockClear()
     mockRemoveEventListener.mockClear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('init', () => {
@@ -113,6 +117,17 @@ describe('useTheme', () => {
       setMode('dark')
       expect(mode.value).toBe('dark')
       expect(localStorage.getItem('theme-mode')).toBe('dark')
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+
+    it('still applies the mode when localStorage write throws (quota)', async () => {
+      const { mode, setMode, init } = await freshTheme()
+      init()
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('quota', 'QuotaExceededError')
+      })
+      expect(() => setMode('dark')).not.toThrow()
+      expect(mode.value).toBe('dark')
       expect(document.documentElement.classList.contains('dark')).toBe(true)
     })
 

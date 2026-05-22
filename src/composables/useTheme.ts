@@ -22,7 +22,11 @@ function onMediaChange (e: MediaQueryListEvent) {
 
 function setMode (m: ThemeMode) {
   mode.value = m
-  localStorage.setItem(STORAGE_KEY, m)
+  try {
+    localStorage.setItem(STORAGE_KEY, m)
+  } catch (err) {
+    console.warn('[useTheme] failed to persist mode', err)
+  }
   apply(m)
 }
 
