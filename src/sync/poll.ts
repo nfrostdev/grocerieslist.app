@@ -1,9 +1,8 @@
 import { pollList } from './transport'
 import { applyPollPayload } from './reconcile'
 import { getMeta, getSyncMetaMap, saveSyncMetaMap } from './storage'
-import { cleanupListLocally } from './cleanup'
+import { onAuthLost } from './cleanup'
 import { useListsStore } from '@/stores/lists'
-import { useToastStore } from '@/stores/toast'
 
 const POLL_INTERVAL_MS = 5_000
 const MAX_BACKOFF_MS = 60_000
@@ -83,15 +82,8 @@ async function runPoller (listId: string, state: PollState): Promise<void> {
       useListsStore().gcTombstones()
       await sleep(POLL_INTERVAL_MS)
     } else if (result.error.kind === 'unauthorized' || result.error.kind === 'not-found') {
-      const listName = useListsStore().getListFromId(listId)?.n ?? 'a shared list'
-      useToastStore().add(
-        result.error.kind === 'unauthorized'
-          ? `Access to "${listName}" was revoked.`
-          : `"${listName}" was deleted.`,
-        'error'
-      )
       stopPoller(listId)
-      cleanupListLocally(listId)
+      onAuthLost(listId, result.error.kind)
       break
     } else {
       await sleep(state.backoff)

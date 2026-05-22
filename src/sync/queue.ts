@@ -1,9 +1,8 @@
-import { useListsStore } from '@/stores/lists'
 import { useToastStore } from '@/stores/toast'
 import { getMeta } from './storage'
 import { upsertItem } from './transport'
 import { reconcileServerItem } from './reconcile'
-import { cleanupListLocally } from './cleanup'
+import { onAuthLost } from './cleanup'
 import type { Op, UpsertItemOp } from './types'
 
 const QUEUE_KEY = 'pendingOps'
@@ -129,15 +128,8 @@ async function flush (): Promise<void> {
       result.error.kind === 'unauthorized' ||
       result.error.kind === 'not-found'
     ) {
-      const listName = useListsStore().getListFromId(op.listId)?.n ?? 'a shared list'
-      useToastStore().add(
-        result.error.kind === 'unauthorized'
-          ? `Access to "${listName}" was revoked.`
-          : `"${listName}" was deleted.`,
-        'error'
-      )
       purgeOpsForList(op.listId)
-      cleanupListLocally(op.listId)
+      onAuthLost(op.listId, result.error.kind)
     } else if (
       result.error.kind === 'server' &&
       result.error.status >= 400 &&
