@@ -236,6 +236,55 @@ describe('flush — 401/404 teardown', () => {
   })
 })
 
+describe('flush — generic 4xx', () => {
+  it('drops the op and toasts on 400 instead of retrying forever', async () => {
+    vi.mocked(getMeta).mockReturnValue(META)
+    vi.mocked(upsertItem).mockResolvedValue({ ok: false, error: { kind: 'server', status: 400 } })
+    mockStore({ getListFromId: vi.fn().mockReturnValue({ id: 'list1', n: 'G', i: [] }) })
+    const toastAdd = vi.fn()
+    vi.mocked(useToastStore).mockReturnValue({ add: toastAdd } as unknown as ReturnType<typeof useToastStore>)
+
+    enqueue({ kind: 'upsertItem', listId: 'list1', item: ITEM })
+    await vi.runAllTimersAsync()
+
+    expect(vi.mocked(upsertItem)).toHaveBeenCalledTimes(1)
+    expect(toastAdd).toHaveBeenCalledWith(expect.stringContaining('Could not save'), 'error')
+    const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as unknown[]
+    expect(q).toHaveLength(0)
+  })
+
+  it('drops the op on 413 (too large) and keeps draining the rest', async () => {
+    vi.mocked(getMeta).mockReturnValue(META)
+    vi.mocked(upsertItem)
+      .mockResolvedValueOnce({ ok: false, error: { kind: 'server', status: 413 } })
+      .mockResolvedValue({ ok: true, data: { item: ITEM } })
+    mockStore({ getListFromId: vi.fn().mockReturnValue({ id: 'list1', n: 'G', i: [] }) })
+
+    enqueue({ kind: 'upsertItem', listId: 'list1', item: { ...ITEM, id: 'reject' } })
+    enqueue({ kind: 'upsertItem', listId: 'list1', item: { ...ITEM, id: 'ok' } })
+    await vi.runAllTimersAsync()
+
+    expect(vi.mocked(upsertItem)).toHaveBeenCalledTimes(2)
+    const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as unknown[]
+    expect(q).toHaveLength(0)
+  })
+
+  it('still retries on 5xx (server) instead of dropping', async () => {
+    vi.mocked(getMeta).mockReturnValue(META)
+    vi.mocked(upsertItem)
+      .mockResolvedValueOnce({ ok: false, error: { kind: 'server', status: 500 } })
+      .mockResolvedValue({ ok: true, data: { item: ITEM } })
+    mockStore({ getListFromId: vi.fn().mockReturnValue({ id: 'list1', n: 'G', i: [] }) })
+
+    enqueue({ kind: 'upsertItem', listId: 'list1', item: ITEM })
+    await vi.runAllTimersAsync()
+
+    expect(vi.mocked(upsertItem)).toHaveBeenCalledTimes(2)
+    const q = JSON.parse(localStorage.getItem('pendingOps') ?? '[]') as unknown[]
+    expect(q).toHaveLength(0)
+  })
+})
+
 describe('flush — network backoff', () => {
   it('retries after sleep on network error then succeeds', async () => {
     vi.mocked(getMeta).mockReturnValue(META)

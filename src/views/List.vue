@@ -13,7 +13,7 @@
 
     <form class="new-item" @submit.prevent="addItemToList">
       <label for="name" class="sr-only">Item Name</label>
-      <input v-model="name" required
+      <input v-model="name" required maxlength="500"
              class="new-item__input"
              ref="itemName"
              type="text" id="name" placeholder="Item Name"/>
@@ -121,11 +121,12 @@ function onListDeleted () {
 }
 
 function addItemToList (): void {
-  const addedName = name.value!
-  listsStore.addItem(listId.value, new Item(addedName, String(quantity.value)))
+  const trimmed = (name.value ?? '').trim()
+  if (trimmed === '') return
+  listsStore.addItem(listId.value, new Item(trimmed, String(quantity.value)))
   name.value = null
   quantity.value = 1
-  announce(`${addedName} added`)
+  announce(`${trimmed} added`)
   itemName.value!.focus()
 }
 

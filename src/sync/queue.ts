@@ -138,6 +138,18 @@ async function flush (): Promise<void> {
       )
       purgeOpsForList(op.listId)
       cleanupListLocally(op.listId)
+    } else if (
+      result.error.kind === 'server' &&
+      result.error.status >= 400 &&
+      result.error.status < 500
+    ) {
+      // Any other 4xx — 400 (invalid), 403 (forbidden), 413 (too large) —
+      // is terminal for this op. Retrying never recovers, and the head op
+      // would block every subsequent change on every list until the user
+      // restarts and manually clears pendingOps.
+      useToastStore().add('Could not save change — the server rejected it.', 'error')
+      removeOpById(op.opId)
+      backoffMs = 1_000
     } else {
       await sleep(backoffMs)
       backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS)
