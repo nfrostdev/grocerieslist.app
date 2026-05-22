@@ -205,6 +205,39 @@ describe('List.vue', () => {
     })
   })
 
+  describe('crash safety when list is missing', () => {
+    // Mounts on a route whose id doesn't exist in the store.
+    const mountUnknown = async () => {
+      const pinia = createPinia()
+      const router = createRouter({ history: createMemoryHistory(), routes })
+      await router.push({ name: 'List', params: { id: 'ghost' } })
+
+      const wrapper = mount(ListV, {
+        global: {
+          plugins: [pinia, router],
+          stubs: { FontAwesomeIcon: { template: '<span />' } }
+        }
+      })
+      await nextTick()
+      return { wrapper, router }
+    }
+
+    it('does not throw when mounted with an unknown route id', async () => {
+      let result: { wrapper: ReturnType<typeof mount>; router: ReturnType<typeof createRouter> } | null = null
+      await expect(async () => { result = await mountUnknown() }).not.toThrow()
+      await flushPromises()
+      expect(result!.router.currentRoute.value.name).toBe('Lists')
+    })
+
+    it('does not crash when the list is removed mid-edit', async () => {
+      const { wrapper, store } = await mountList()
+      // Simulate the list disappearing while a handler is mid-flight.
+      store.$patch({ lists: [] })
+      const qtyInput = wrapper.find('.item__quantity__input')
+      expect(() => qtyInput.element.dispatchEvent(new Event('change'))).not.toThrow()
+    })
+  })
+
   describe('navigation guard', () => {
     it('does NOT navigate to Lists when the share button is clicked', async () => {
       const { wrapper, router } = await mountListWithSheet()
