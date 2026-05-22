@@ -108,10 +108,16 @@ describe('POST /api/lists', () => {
     expect(res.status).toBe(200)
     const { id, authToken } = await res.json() as { id: string; authToken: string }
 
+    const mintReq = new Request(`http://localhost/api/lists/${id}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    const { token: editorToken } = await handleMintToken(db, mintReq, id).then(r => r.json() as Promise<{ token: string }>)
+
     const joinReq = new Request(`http://localhost/api/lists/${id}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: authToken })
+      body: JSON.stringify({ token: editorToken })
     })
     const body = await handleJoin(db, joinReq, id).then(r => r.json() as Promise<{ name: string }>)
     expect(body.name).toBe('Weekly Shop')
@@ -199,13 +205,24 @@ describe('POST /api/lists/:id/join', () => {
     return res.json() as Promise<{ id: string; authToken: string }>
   }
 
-  it('returns list data for a valid token', async () => {
+  async function mintEditorToken (id: string, ownerToken: string) {
+    const mintReq = new Request(`http://localhost/api/lists/${id}/tokens`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    })
+    const res = await handleMintToken(db, mintReq, id)
+    const body = await res.json() as { token: string }
+    return body.token
+  }
+
+  it('returns list data for a valid editor token', async () => {
     const { id, authToken } = await provision('Test List')
+    const editorToken = await mintEditorToken(id, authToken)
 
     const req = new Request(`http://localhost/api/lists/${id}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: authToken })
+      body: JSON.stringify({ token: editorToken })
     })
     const res = await handleJoin(db, req, id)
     expect(res.status).toBe(200)
@@ -217,18 +234,31 @@ describe('POST /api/lists/:id/join', () => {
     expect(body.items).toEqual([])
   })
 
-  it('is multi-use — same token can join multiple times', async () => {
+  it('is multi-use — same editor token can join multiple times', async () => {
     const { id, authToken } = await provision()
+    const editorToken = await mintEditorToken(id, authToken)
 
     for (let i = 0; i < 3; i++) {
       const req = new Request(`http://localhost/api/lists/${id}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: authToken })
+        body: JSON.stringify({ token: editorToken })
       })
       const res = await handleJoin(db, req, id)
       expect(res.status).toBe(200)
     }
+  })
+
+  it('rejects an owner token with 401 — owner tokens are not shareable', async () => {
+    const { id, authToken } = await provision()
+
+    const req = new Request(`http://localhost/api/lists/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: authToken })
+    })
+    const res = await handleJoin(db, req, id)
+    expect(res.status).toBe(401)
   })
 
   it('returns 401 for an invalid token', async () => {
@@ -257,6 +287,7 @@ describe('POST /api/lists/:id/join', () => {
 
   it('does not return soft-deleted items in the join payload', async () => {
     const { id, authToken } = await provision()
+    const editorToken = await mintEditorToken(id, authToken)
     const upsertReq = (itemId: string, item: object) => new Request(`http://localhost/api/lists/${id}/items/${itemId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -269,7 +300,7 @@ describe('POST /api/lists/:id/join', () => {
     const req = new Request(`http://localhost/api/lists/${id}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: authToken })
+      body: JSON.stringify({ token: editorToken })
     })
     const res = await handleJoin(db, req, id)
     const body = await res.json() as { items: Array<{ id: string }>, cursor: number }
@@ -279,14 +310,15 @@ describe('POST /api/lists/:id/join', () => {
     expect(body.cursor).toBe(2000)
   })
 
-  it('returns 401 when token belongs to a different list', async () => {
-    const { authToken } = await provision('List A')
+  it('returns 401 when editor token belongs to a different list', async () => {
+    const { id: idA, authToken: ownerA } = await provision('List A')
+    const editorA = await mintEditorToken(idA, ownerA)
     const { id: otherId } = await provision('List B')
 
     const req = new Request(`http://localhost/api/lists/${otherId}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: authToken })
+      body: JSON.stringify({ token: editorA })
     })
     const res = await handleJoin(db, req, otherId)
     expect(res.status).toBe(401)
