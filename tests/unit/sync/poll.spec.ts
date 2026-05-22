@@ -3,6 +3,7 @@ import { startPoller, stopPoller } from '@/sync/poll'
 import { pollList } from '@/sync/transport'
 import { applyPollPayload } from '@/sync/reconcile'
 import { getMeta, getSyncMetaMap, saveSyncMetaMap } from '@/sync/storage'
+import { onAuthLost } from '@/sync/cleanup'
 
 vi.mock('@/sync/transport', () => ({ pollList: vi.fn() }))
 vi.mock('@/sync/reconcile', () => ({ applyPollPayload: vi.fn() }))
@@ -11,10 +12,9 @@ vi.mock('@/sync/storage', () => ({
   getSyncMetaMap: vi.fn(() => ({})),
   saveSyncMetaMap: vi.fn()
 }))
-vi.mock('@/sync/cleanup', () => ({ cleanupListLocally: vi.fn() }))
+vi.mock('@/sync/cleanup', () => ({ cleanupListLocally: vi.fn(), onAuthLost: vi.fn() }))
 const mGcTombstones = vi.fn()
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn(() => ({ getListFromId: vi.fn(() => ({ n: 'Test List' })), gcTombstones: mGcTombstones })) }))
-vi.mock('@/stores/toast', () => ({ useToastStore: vi.fn(() => ({ add: vi.fn() })) }))
 
 const mGetMeta = vi.mocked(getMeta)
 const mPollList = vi.mocked(pollList)
@@ -95,7 +95,7 @@ describe('sync/poll', () => {
     )
   })
 
-  it('runPoller: stops and removes itself on unauthorized error', async () => {
+  it('runPoller: stops and delegates to onAuthLost on unauthorized error', async () => {
     mGetMeta.mockReturnValue({ authToken: 'bad', lastCursor: 0, role: 'editor' })
     mPollList.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
 
@@ -103,13 +103,14 @@ describe('sync/poll', () => {
     await vi.runAllTimersAsync()
 
     expect(mPollList).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(onAuthLost)).toHaveBeenCalledWith('unauth1', 'unauthorized')
     mGetMeta.mockReturnValue(null)
     startPoller('unauth1')
     await vi.runAllTimersAsync()
     expect(mPollList).toHaveBeenCalledTimes(1)
   })
 
-  it('runPoller: stops on not-found error', async () => {
+  it('runPoller: stops and delegates to onAuthLost on not-found error', async () => {
     mGetMeta.mockReturnValue({ authToken: 'tok', lastCursor: 0, role: 'owner' })
     mPollList.mockResolvedValue({ ok: false, error: { kind: 'not-found' } })
 
@@ -118,6 +119,7 @@ describe('sync/poll', () => {
 
     expect(mPollList).toHaveBeenCalledTimes(1)
     expect(vi.mocked(applyPollPayload)).not.toHaveBeenCalled()
+    expect(vi.mocked(onAuthLost)).toHaveBeenCalledWith('notfound1', 'not-found')
   })
 
   it('stopPoller: removes the visibilitychange listener registered while hidden', async () => {
