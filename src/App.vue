@@ -49,7 +49,12 @@ async function handleJoinFragment () {
 
   const [, listId, token] = m
 
-  if (sync.getMeta(listId)) {
+  // Stale local meta (e.g. owner rotated the editor token) would otherwise
+  // short-circuit the rejoin — the poller keeps presenting the dead token,
+  // 401s eventually, and the user sees a confusing "Access revoked" toast.
+  // Fall through to the full join flow whenever the link's token differs.
+  const existing = sync.getMeta(listId)
+  if (existing && existing.authToken === token) {
     router.replace({ name: 'List', params: { id: listId } })
     return
   }
