@@ -100,7 +100,7 @@ const provisioning = ref(false)
 
 watch([list, shareOpen, provisioning], ([currentList, isOpen, isProvisioning]) => {
   if (!currentList && !isOpen && !isProvisioning) router.replace({ name: 'Lists' })
-})
+}, { immediate: true })
 
 function openShare () {
   if (list.value) {
@@ -130,7 +130,7 @@ function addItemToList (): void {
 }
 
 function modifyItemQuantity (input: HTMLInputElement, id: string): void {
-  const item = list.value!.i.find(i => i.id === id)
+  const item = list.value?.i.find(i => i.id === id)
   if (!item) return
   const trimmed = input.value.trim()
   if (trimmed !== '' && !isNaN(Number(trimmed))) {
@@ -141,7 +141,7 @@ function modifyItemQuantity (input: HTMLInputElement, id: string): void {
 }
 
 function modifyItemName (input: HTMLInputElement, id: string): void {
-  const item = list.value!.i.find(i => i.id === id)
+  const item = list.value?.i.find(i => i.id === id)
   if (!item) return
   const trimmed = input.value.trim()
   if (trimmed !== '') {
@@ -153,7 +153,7 @@ function modifyItemName (input: HTMLInputElement, id: string): void {
 }
 
 async function deleteItem (id: string): Promise<void> {
-  const item = list.value!.i.find(i => i.id === id)
+  const item = list.value?.i.find(i => i.id === id)
   if (!item) return
   const deletedName = item.n
 
@@ -173,7 +173,7 @@ async function deleteItem (id: string): Promise<void> {
 }
 
 function toggleItemCheckedStatus (id: string): void {
-  const item = list.value!.i.find(i => i.id === id)
+  const item = list.value?.i.find(i => i.id === id)
   if (!item) return
   const next = item.c === 0 ? 1 : 0
   listsStore.updateItem(listId.value, id, { c: next })
@@ -181,7 +181,10 @@ function toggleItemCheckedStatus (id: string): void {
 }
 
 onMounted(async () => {
-  document.title = list.value!.n + ' List | Groceries List'
+  // The redirect watch above fires async — guard the sync path so a stale
+  // tab or hand-typed URL doesn't throw before the watch can route away.
+  if (!list.value) return
+  document.title = list.value.n + ' List | Groceries List'
   await nextTick()
   itemName.value?.focus()
 })
