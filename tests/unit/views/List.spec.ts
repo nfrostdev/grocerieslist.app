@@ -104,6 +104,21 @@ describe('List.vue', () => {
     expect(store.lists[0].i[0].n).toBe('Milk')
   })
 
+  it('does not add an item when the name is whitespace-only', async () => {
+    const { wrapper, store } = await mountList([])
+    await wrapper.find('input#name').setValue('   ')
+    await wrapper.find('input#quantity').setValue('3')
+    await wrapper.find('form').trigger('submit')
+    expect(store.lists[0].i).toHaveLength(0)
+  })
+
+  it('trims surrounding whitespace from the new item name on add', async () => {
+    const { wrapper, store } = await mountList([])
+    await wrapper.find('input#name').setValue('  Milk  ')
+    await wrapper.find('form').trigger('submit')
+    expect(store.lists[0].i[0].n).toBe('Milk')
+  })
+
   it('toggles an item to checked on checkbox input', async () => {
     const { wrapper, store } = await mountList()
     await wrapper.find('input[type="checkbox"]').trigger('input')
