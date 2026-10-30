@@ -17,7 +17,7 @@ PWA grocery list with live sync. Vue 3.5 + Pinia 3 SPA, Cloudflare Pages + Pages
 | `tests/integration/` | Vitest against real D1 via miniflare |
 | `tests/e2e/` | Playwright + axe-core (`smoke.spec.ts`, `sync.spec.ts`) |
 | `schema.sql` | D1 schema — three tables: `lists`, `list_tokens`, `items` |
-| `public/_headers`, `public/_redirects` | CSP + SPA fallback |
+| `public/_headers` | CSP. No `_redirects`: with no top-level `404.html`, Pages serves `index.html` for unknown paths (SPA fallback) on its own |
 | `.github/workflows/` | `ci.yml` (lint + tests + build + e2e on PR), `gc-tombstones.yml` (nightly D1 sweep) |
 
 ## Stack
